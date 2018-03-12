@@ -5,11 +5,8 @@ import java.util.Map;
 
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.QualifierMetadata;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.time.Instant;
-import java.math.BigDecimal;
-
 
 public class DvHydroMetadata {	
 	
