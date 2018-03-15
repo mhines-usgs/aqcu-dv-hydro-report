@@ -12,6 +12,8 @@ import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.Qual
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.Qualifier;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.QualifierMetadata;
 
+import gov.usgs.aqcu.retrieval.AquariusRetrievalService;
+
 @Component
 public class QualifierLookupService extends AquariusRetrievalService {
 	private static final Logger LOG = LoggerFactory.getLogger(QualifierLookupService.class);
