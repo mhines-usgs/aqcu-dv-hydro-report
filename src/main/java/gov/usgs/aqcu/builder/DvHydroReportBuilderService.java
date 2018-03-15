@@ -36,7 +36,7 @@ import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.Time
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesPoint;
 
 import gov.usgs.aqcu.model.*;
-import gov.usgs.aqcu.parameter.TssRequestParameters;
+import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
 import gov.usgs.aqcu.retrieval.*;
 
 @Component
@@ -68,7 +68,7 @@ public class DvHydroReportBuilderService {
 		this.fieldVisitDataService = fieldVisitDataService;
 	}
 
-	public DvHydroReport buildReport(TssRequestParameters requestParameters, String requestingUser) {
+	public DvHydroReport buildReport(DvHydroRequestParameters requestParameters, String requestingUser) {
 
 		TimeSeriesDataServiceResponse firstStatDerivedDataResponse = null;
 		TimeSeriesDataServiceResponse secondStatDerivedDataResponse = null;

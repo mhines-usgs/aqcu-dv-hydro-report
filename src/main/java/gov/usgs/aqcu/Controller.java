@@ -15,7 +15,7 @@ import com.google.gson.Gson;
 import gov.usgs.aqcu.builder.DvHydroReportBuilderService;
 import gov.usgs.aqcu.client.JavaToRClient;
 import gov.usgs.aqcu.model.DvHydroReport;
-import gov.usgs.aqcu.parameter.TssRequestParameters;
+import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
 
 @RestController
 @RequestMapping("/dvhydro")
@@ -35,7 +35,7 @@ public class Controller {
 	}
 
 	@GetMapping(produces={MediaType.TEXT_HTML_VALUE})
-	public ResponseEntity<?> getReport(@Validated TssRequestParameters requestParameters) {
+	public ResponseEntity<?> getReport(@Validated DvHydroRequestParameters requestParameters) {
 		String requestingUser = getRequestingUser();
 		DvHydroReport report = reportBuilderService.buildReport(requestParameters, requestingUser);
 		byte[] reportHtml = javaToRClient.render(requestingUser, "dvhydro", gson.toJson(report, DvHydroReport.class));
@@ -43,7 +43,7 @@ public class Controller {
 	}
 
 	@GetMapping(value="/rawData", produces={MediaType.APPLICATION_JSON_VALUE})
-	public ResponseEntity<DvHydroReport> getReportRawData(@Validated TssRequestParameters requestParameters) {
+	public ResponseEntity<DvHydroReport> getReportRawData(@Validated DvHydroRequestParameters requestParameters) {
 		DvHydroReport report = reportBuilderService.buildReport(requestParameters, getRequestingUser());
 		return new ResponseEntity<DvHydroReport>(report, new HttpHeaders(), HttpStatus.OK);
 	}

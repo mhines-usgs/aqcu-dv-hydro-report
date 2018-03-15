@@ -3,7 +3,7 @@ package gov.usgs.aqcu.parameter;
 import gov.usgs.aqcu.validation.StatDerivedIdentifierPresent;
 
 @StatDerivedIdentifierPresent
-public class TssRequestParameters extends RequestParameters {
+public class DvHydroRequestParameters extends RequestParameters {
 
 	private String firstStatDerivedIdentifier;
 	private String secondStatDerivedIdentifier;

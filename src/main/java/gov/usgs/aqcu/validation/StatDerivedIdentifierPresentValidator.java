@@ -3,9 +3,9 @@ package gov.usgs.aqcu.validation;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
-import gov.usgs.aqcu.parameter.TssRequestParameters;
+import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
 
-public class StatDerivedIdentifierPresentValidator implements ConstraintValidator<StatDerivedIdentifierPresent, TssRequestParameters> {
+public class StatDerivedIdentifierPresentValidator implements ConstraintValidator<StatDerivedIdentifierPresent, DvHydroRequestParameters> {
 
 	@Override
 	public void initialize(StatDerivedIdentifierPresent constraintAnnotation) {
@@ -13,7 +13,7 @@ public class StatDerivedIdentifierPresentValidator implements ConstraintValidato
 	}
 
 	@Override
-	public boolean isValid(TssRequestParameters value, ConstraintValidatorContext context) {
+	public boolean isValid(DvHydroRequestParameters value, ConstraintValidatorContext context) {
 		return !(value.getFirstStatDerivedIdentifier() == null 
 				&& value.getSecondStatDerivedIdentifier() == null 
 				&& value.getThirdStatDerivedIdentifier() == null 

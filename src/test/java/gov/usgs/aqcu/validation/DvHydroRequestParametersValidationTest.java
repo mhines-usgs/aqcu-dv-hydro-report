@@ -19,14 +19,14 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import gov.usgs.aqcu.parameter.RequestParameters;
-import gov.usgs.aqcu.parameter.TssRequestParameters;
+import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
 
-public class TssRequestParametersValidationTest {
+public class DvHydroRequestParametersValidationTest {
 
 	protected static ValidatorFactory validatorFactory;
 	protected static Validator validator;
 
-	protected TssRequestParameters params;
+	protected DvHydroRequestParameters params;
 
 	@BeforeClass
 	public static void createValidator() {
@@ -36,7 +36,7 @@ public class TssRequestParametersValidationTest {
 
 	@Before
 	public void setup() {
-		params = new TssRequestParameters();
+		params = new DvHydroRequestParameters();
 	}
 
 	@AfterClass
