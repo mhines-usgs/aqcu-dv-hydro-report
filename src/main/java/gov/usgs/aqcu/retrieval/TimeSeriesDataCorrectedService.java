@@ -6,6 +6,9 @@ import org.springframework.stereotype.Component;
 
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDataCorrectedServiceRequest;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDataServiceResponse;
+
+import gov.usgs.aqcu.retrieval.AquariusRetrievalService;
+
 import java.time.Instant;
 
 @Component

@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDescriptionListByUniqueIdServiceRequest;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDescriptionListByUniqueIdServiceResponse;
 
+import gov.usgs.aqcu.retrieval.AquariusRetrievalService;
+
 @Component
 public class TimeSeriesDescriptionListService extends AquariusRetrievalService {
 	private static final Logger LOG = LoggerFactory.getLogger(TimeSeriesDescriptionListService.class);
