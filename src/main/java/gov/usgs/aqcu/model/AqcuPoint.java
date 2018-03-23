@@ -23,6 +23,7 @@ public class AqcuPoint {
 	 * @return The date & time
 	 */
 	public Temporal getTime() {
+		these need to be date only on dvhydro!!
 		return time;
 	}
 

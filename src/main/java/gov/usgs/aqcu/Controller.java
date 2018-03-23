@@ -38,7 +38,7 @@ public class Controller {
 	public ResponseEntity<?> getReport(@Validated DvHydroRequestParameters requestParameters) {
 		String requestingUser = getRequestingUser();
 		DvHydroReport report = reportBuilderService.buildReport(requestParameters, requestingUser);
-		byte[] reportHtml = javaToRClient.render(requestingUser, "dvhydro", gson.toJson(report, DvHydroReport.class));
+		byte[] reportHtml = javaToRClient.render(requestingUser, "dvhydrograph", gson.toJson(report, DvHydroReport.class));
 		return new ResponseEntity<byte[]>(reportHtml, new HttpHeaders(), HttpStatus.OK);
 	}
 

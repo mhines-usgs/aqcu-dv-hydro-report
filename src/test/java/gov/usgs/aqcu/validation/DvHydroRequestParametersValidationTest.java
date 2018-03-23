@@ -3,6 +3,7 @@ package gov.usgs.aqcu.validation;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Set;
@@ -18,8 +19,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import gov.usgs.aqcu.parameter.RequestParameters;
 import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
+import gov.usgs.aqcu.parameter.RequestParameters;
 
 public class DvHydroRequestParametersValidationTest {
 
@@ -37,6 +38,8 @@ public class DvHydroRequestParametersValidationTest {
 	@Before
 	public void setup() {
 		params = new DvHydroRequestParameters();
+		params.setPrimaryTimeseriesIdentifier("pts");
+		params.setWaterYear(2018);
 	}
 
 	@AfterClass
@@ -47,7 +50,7 @@ public class DvHydroRequestParametersValidationTest {
 	@Test
 	public void emptyRequestParameters() {
 		Set<ConstraintViolation<RequestParameters>> validationErrors = validator.validate(params);
-		assertEquals(RequestParametersValidationTest.BASE_EMPTY_PARAMETER_ERROR_COUNT + 1, validationErrors.size());
+		assertEquals(1, validationErrors.size());
 
 		assertValidationResults(validationErrors,
 				":Need at least one Stat-Derived Time Series Identifier selected."
@@ -58,7 +61,7 @@ public class DvHydroRequestParametersValidationTest {
 	public void goodParameters() {
 		params.setFirstStatDerivedIdentifier("a");
 		Set<ConstraintViolation<RequestParameters>> validationErrors = validator.validate(params);
-		assertEquals(RequestParametersValidationTest.BASE_EMPTY_PARAMETER_ERROR_COUNT, validationErrors.size());
+		assertTrue(validationErrors.isEmpty());
 	}
 
 	public void assertValidationResults(Set<ConstraintViolation<RequestParameters>> actual, String expected) {

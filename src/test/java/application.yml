@@ -1,0 +1,14 @@
+
+aquarius:
+  service:
+    endpoint: https://usgs.gov/aquarius
+    user: user
+    password: changeMe
+
+sims:
+  base:
+    url: https://usgs.gov/sims
+
+waterdata:
+  base:
+    url: https://usgs.gov/waterdata

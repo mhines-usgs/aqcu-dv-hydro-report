@@ -5,7 +5,6 @@ import java.util.List;
 
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.Approval;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.Qualifier;
-import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDescription;
 
 public class DvHydroReport {	
 	private DvHydroCorrectedData firstStatDerived;
@@ -16,113 +15,124 @@ public class DvHydroReport {
 	private DvHydroCorrectedData secondReferenceTimeSeries;
 	private DvHydroCorrectedData thirdReferenceTimeSeries;
 	private DvHydroCorrectedData comparisonSeries;
-	private TimeSeriesDescription primaryTsMetadata;
-	private List<Qualifier> primarySeriesQualifiers;
-	private List<Approval> primarySeriesApprovals;
+	private ArrayList<Qualifier> primarySeriesQualifiers;
+	private ArrayList<Approval> primarySeriesApprovals;
 	private List<AqcuFieldVisitMeasurement> fieldVisitMeasurements;
 	private DvHydroMetadata reportMetadata;
-	
-	public DvHydroReport() {
-		firstStatDerived = new DvHydroCorrectedData();
-		secondStatDerived = new DvHydroCorrectedData();
-		thirdStatDerived = new DvHydroCorrectedData();
-		fourthStatDerived = new DvHydroCorrectedData();
-		firstReferenceTimeSeries = new DvHydroCorrectedData();
-		secondReferenceTimeSeries = new DvHydroCorrectedData();
-		thirdReferenceTimeSeries = new DvHydroCorrectedData();
-		comparisonSeries = new DvHydroCorrectedData();
-		primaryTsMetadata = new TimeSeriesDescription();
-		primarySeriesQualifiers = new ArrayList<>();
-		primarySeriesApprovals = new ArrayList<>();
-		reportMetadata = new DvHydroMetadata();
+	private String simsUrl;
+	private String waterdataUrl;
+	private String maxMinData;
+	private List<String> readings;
+	public DvHydroCorrectedData getFirstStatDerived() {
+		return firstStatDerived;
 	}
-	
+	public void setFirstStatDerived(DvHydroCorrectedData firstStatDerived) {
+		this.firstStatDerived = firstStatDerived;
+	}
+	public DvHydroCorrectedData getSecondStatDerived() {
+		return secondStatDerived;
+	}
+	public void setSecondStatDerived(DvHydroCorrectedData secondStatDerived) {
+		this.secondStatDerived = secondStatDerived;
+	}
+	public DvHydroCorrectedData getThirdStatDerived() {
+		return thirdStatDerived;
+	}
+	public void setThirdStatDerived(DvHydroCorrectedData thirdStatDerived) {
+		this.thirdStatDerived = thirdStatDerived;
+	}
+	public DvHydroCorrectedData getFourthStatDerived() {
+		return fourthStatDerived;
+	}
+	public void setFourthStatDerived(DvHydroCorrectedData fourthStatDerived) {
+		this.fourthStatDerived = fourthStatDerived;
+	}
+	public DvHydroCorrectedData getFirstReferenceTimeSeries() {
+		return firstReferenceTimeSeries;
+	}
+	public void setFirstReferenceTimeSeries(DvHydroCorrectedData firstReferenceTimeSeries) {
+		this.firstReferenceTimeSeries = firstReferenceTimeSeries;
+	}
+	public DvHydroCorrectedData getSecondReferenceTimeSeries() {
+		return secondReferenceTimeSeries;
+	}
+	public void setSecondReferenceTimeSeries(DvHydroCorrectedData secondReferenceTimeSeries) {
+		this.secondReferenceTimeSeries = secondReferenceTimeSeries;
+	}
+	public DvHydroCorrectedData getThirdReferenceTimeSeries() {
+		return thirdReferenceTimeSeries;
+	}
+	public void setThirdReferenceTimeSeries(DvHydroCorrectedData thirdReferenceTimeSeries) {
+		this.thirdReferenceTimeSeries = thirdReferenceTimeSeries;
+	}
+	public DvHydroCorrectedData getComparisonSeries() {
+		return comparisonSeries;
+	}
+	public void setComparisonSeries(DvHydroCorrectedData comparisonSeries) {
+		this.comparisonSeries = comparisonSeries;
+	}
+	public ArrayList<Qualifier> getPrimarySeriesQualifiers() {
+		return primarySeriesQualifiers;
+	}
+	public void setPrimarySeriesQualifiers(ArrayList<Qualifier> primarySeriesQualifiers) {
+		this.primarySeriesQualifiers = primarySeriesQualifiers;
+	}
+	public ArrayList<Approval> getPrimarySeriesApprovals() {
+		return primarySeriesApprovals;
+	}
+	public void setPrimarySeriesApprovals(ArrayList<Approval> primarySeriesApprovals) {
+		this.primarySeriesApprovals = primarySeriesApprovals;
+	}
+	public List<AqcuFieldVisitMeasurement> getFieldVisitMeasurements() {
+		return fieldVisitMeasurements;
+	}
+	public void setFieldVisitMeasurements(List<AqcuFieldVisitMeasurement> fieldVisitMeasurements) {
+		this.fieldVisitMeasurements = fieldVisitMeasurements;
+	}
 	public DvHydroMetadata getReportMetadata() {
 		return reportMetadata;
 	}
-	
-	public DvHydroCorrectedData getFirstStatDerivedData() {
-		return firstStatDerived;
+	public void setReportMetadata(DvHydroMetadata reportMetadata) {
+		this.reportMetadata = reportMetadata;
+	}
+	public String getSimsUrl() {
+		return simsUrl;
+	}
+	public void setSimsUrl(String simsUrl) {
+		this.simsUrl = simsUrl;
+	}
+	public String getWaterdataUrl() {
+		return waterdataUrl;
+	}
+	public void setWaterdataUrl(String waterdataUrl) {
+		this.waterdataUrl = waterdataUrl;
+	}
+	public String getMaxMinData() {
+		return maxMinData;
+	}
+	public void setMaxMinData(String maxMinData) {
+		this.maxMinData = maxMinData;
+	}
+	public List<String> getReadings() {
+		return readings;
+	}
+	public void setReadings(List<String> readings) {
+		this.readings = readings;
 	}
 	
-	public DvHydroCorrectedData getSecondStatDerivedData() {
-		return secondStatDerived;
-	}
-	
-	public DvHydroCorrectedData getThirdStatDerivedData() {
-		return thirdStatDerived;
-	}
-	
-	public DvHydroCorrectedData getFourthStatDerivedData() {
-		return fourthStatDerived;
-	}
-	
-	public DvHydroCorrectedData getFirstReferenceData() {
-		return firstReferenceTimeSeries;
-	}
-	
-	public DvHydroCorrectedData getSecondReferenceData() {
-		return secondReferenceTimeSeries;
-	}
-	
-	public DvHydroCorrectedData getThirdReferenceData() {
-		return thirdReferenceTimeSeries;
-	}
-	
-	public DvHydroCorrectedData getComparisonSeriesData() {
-		return comparisonSeries;
-	}
-	
-	public void setReportMetadata(DvHydroMetadata val) {
-		reportMetadata = val;
-	}
-	
-	public void setFirstStatDerivedData(DvHydroCorrectedData val) {
-		firstStatDerived = val;
-	}
-	
-	public void setSecondStatDerivedData(DvHydroCorrectedData val) {
-		secondStatDerived = val;
-	}
-	
-	public void setThirdStatDerivedData(DvHydroCorrectedData val) {
-		thirdStatDerived = val;
-	}
-	
-	public void setFourthStatDerivedData(DvHydroCorrectedData val) {
-		fourthStatDerived = val;
-	}
-	
-	public void setFirstReferenceData(DvHydroCorrectedData val) {
-		firstReferenceTimeSeries = val;
-	}
-	
-	public void setSecondReferenceData(DvHydroCorrectedData val) {
-		secondReferenceTimeSeries = val;
-	}
-	
-	public void setThirdReferenceData(DvHydroCorrectedData val) {
-		thirdReferenceTimeSeries = val;
-	}
-	
-	public void setComparisonSeriesData(DvHydroCorrectedData val) {
-		comparisonSeries = val;
-	}
-	
-	public void setPrimaryTsMetadata(TimeSeriesDescription val) {
-		primaryTsMetadata = val;
-	}
-	
-	public void setQualifier(List<Qualifier> val) {
-		primarySeriesQualifiers = val;
-	}
-	
-	public void setApproval(List<Approval> val) {
-		primarySeriesApprovals = val;
-	}
-	
-	public void setFieldVisitMeasurements(List<AqcuFieldVisitMeasurement> val) {
-		fieldVisitMeasurements = val;
-	}
+//	public DvHydroReport() {
+//		firstStatDerived = new DvHydroCorrectedData();
+//		secondStatDerived = new DvHydroCorrectedData();
+//		thirdStatDerived = new DvHydroCorrectedData();
+//		fourthStatDerived = new DvHydroCorrectedData();
+//		firstReferenceTimeSeries = new DvHydroCorrectedData();
+//		secondReferenceTimeSeries = new DvHydroCorrectedData();
+//		thirdReferenceTimeSeries = new DvHydroCorrectedData();
+//		comparisonSeries = new DvHydroCorrectedData();
+////		primaryTsMetadata = new TimeSeriesDescription();
+//		primarySeriesQualifiers = new ArrayList<>();
+//		primarySeriesApprovals = new ArrayList<>();
+//		reportMetadata = new DvHydroMetadata();
+//	}
+
 }
-	

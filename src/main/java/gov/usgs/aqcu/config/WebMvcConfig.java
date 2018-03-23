@@ -77,6 +77,7 @@ public class WebMvcConfig extends WebMvcConfigurerAdapter {
 			.registerTypeAdapter(Instant.class, new InstantDeserializer())
 			.registerTypeAdapter(Json.class, new SwaggerGsonSerializer())
 			.setFieldNamingStrategy(LOWER_CASE_CAMEL_CASE)
+			.serializeNulls()
 			.create();
 
 		return gson;

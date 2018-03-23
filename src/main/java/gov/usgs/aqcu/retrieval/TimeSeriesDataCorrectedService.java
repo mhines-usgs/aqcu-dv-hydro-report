@@ -41,11 +41,27 @@ public class TimeSeriesDataCorrectedService {
 		return qualifiers;
 	}
 
+	public TimeSeriesDataServiceResponse get(String timeseriesIdentifier, DvHydroRequestParameters requestParameters) {
+		TimeSeriesDataServiceResponse timeSeriesResponse = new TimeSeriesDataServiceResponse();
+		try {
+			timeSeriesResponse = get(timeseriesIdentifier,
+					requestParameters.getStartInstant(),
+					requestParameters.getEndInstant());
+		} catch (Exception e) {
+			String msg = "An unexpected error occurred while attempting to fetch TimeSeriesDataCorrectedRequest from Aquarius: ";
+			LOG.error(msg, e);
+			throw new RuntimeException(msg, e);
+		}
+		return timeSeriesResponse;
+	}
+
 	protected TimeSeriesDataServiceResponse get(String primaryTimeseriesIdentifier, Instant startDate, Instant endDate) throws Exception {
 		TimeSeriesDataCorrectedServiceRequest request = new TimeSeriesDataCorrectedServiceRequest()
 				.setTimeSeriesUniqueId(primaryTimeseriesIdentifier)
 				.setQueryFrom(startDate)
-				.setQueryTo(endDate);
+				.setQueryTo(endDate)
+				.setApplyRounding(true)
+				.setUtcOffset(value);
 		TimeSeriesDataServiceResponse timeSeriesResponse  = aquariusRetrievalService.executePublishApiRequest(request);
 		return timeSeriesResponse;
 	}

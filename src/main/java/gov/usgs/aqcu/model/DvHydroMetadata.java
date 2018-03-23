@@ -13,6 +13,7 @@ public class DvHydroMetadata {
 	private Instant endDate;
 	private String title;
 	private String primarySeriesLabel;
+	private String firstStatDerived;
 	private String firstStatDerivedLabel;
 	private String secondStatDerivedLabel;
 	private String thirdStatDerivedLabel;
@@ -22,143 +23,145 @@ public class DvHydroMetadata {
 	private String thirdReferenceTimeSeriesLabel;
 	private String comparisonSeriesLabel;
 	private Map<String, QualifierMetadata> qualifierMetadata;
+//TODO???	private Map<String, GradeMetadata> gradeMetadata;
 	private String stationName;
 	private String stationId;
+	private boolean excludeZeroNegative;
+	private boolean excludeMinMax;
+	private boolean excludeDiscrete;
+	private boolean isInverted;
 
 	public String getRequestingUser() {
 		return requestingUser;
 	}
-
+	public void setRequestingUser(String requestingUser) {
+		this.requestingUser = requestingUser;
+	}
 	public String getTimezone() {
 		return timezone;
 	}
-
+	public void setTimezone(String timezone) {
+		this.timezone = timezone;
+	}
 	public Instant getStartDate() {
 		return startDate;
 	}
-
+	public void setStartDate(Instant startDate) {
+		this.startDate = startDate;
+	}
 	public Instant getEndDate() {
 		return endDate;
 	}
-
+	public void setEndDate(Instant endDate) {
+		this.endDate = endDate;
+	}
 	public String getTitle() {
 		return title;
 	}
-
-	public String getPrimaryParameter() {
+	public void setTitle(String title) {
+		this.title = title;
+	}
+	public String getPrimarySeriesLabel() {
 		return primarySeriesLabel;
 	}
-
-	public String getFirstStatDerivedParameter() {
+	public void setPrimarySeriesLabel(String primarySeriesLabel) {
+		this.primarySeriesLabel = primarySeriesLabel;
+	}
+	public String getFirstStatDerived() {
+		return firstStatDerived;
+	}
+	public void setFirstStatDerived(String firstStatDerived) {
+		this.firstStatDerived = firstStatDerived;
+	}
+	public String getFirstStatDerivedLabel() {
 		return firstStatDerivedLabel;
 	}
-
-	public String getSecondStatDerivedParameter() {
+	public void setFirstStatDerivedLabel(String firstStatDerivedLabel) {
+		this.firstStatDerivedLabel = firstStatDerivedLabel;
+	}
+	public String getSecondStatDerivedLabel() {
 		return secondStatDerivedLabel;
 	}
-
-	public String getThirdStatDerivedParameter() {
+	public void setSecondStatDerivedLabel(String secondStatDerivedLabel) {
+		this.secondStatDerivedLabel = secondStatDerivedLabel;
+	}
+	public String getThirdStatDerivedLabel() {
 		return thirdStatDerivedLabel;
 	}
-
-	public String getFourthStatDerivedParameter() {
+	public void setThirdStatDerivedLabel(String thirdStatDerivedLabel) {
+		this.thirdStatDerivedLabel = thirdStatDerivedLabel;
+	}
+	public String getFourthStatDerivedLabel() {
 		return fourthStatDerivedLabel;
 	}
-
-	public String getFirstReferenceTimeSeriesParameter() {
+	public void setFourthStatDerivedLabel(String fourthStatDerivedLabel) {
+		this.fourthStatDerivedLabel = fourthStatDerivedLabel;
+	}
+	public String getFirstReferenceTimeSeriesLabel() {
 		return firstReferenceTimeSeriesLabel;
 	}
-
-	public String getSecondReferenceTimeSeriesParameter() {
+	public void setFirstReferenceTimeSeriesLabel(String firstReferenceTimeSeriesLabel) {
+		this.firstReferenceTimeSeriesLabel = firstReferenceTimeSeriesLabel;
+	}
+	public String getSecondReferenceTimeSeriesLabel() {
 		return secondReferenceTimeSeriesLabel;
 	}
-
-	public String getThirdReferenceTimeSeriesParameter() {
+	public void setSecondReferenceTimeSeriesLabel(String secondReferenceTimeSeriesLabel) {
+		this.secondReferenceTimeSeriesLabel = secondReferenceTimeSeriesLabel;
+	}
+	public String getThirdReferenceTimeSeriesLabel() {
 		return thirdReferenceTimeSeriesLabel;
 	}
-
-	public String getComparisonSeriesParameter() {
+	public void setThirdReferenceTimeSeriesLabel(String thirdReferenceTimeSeriesLabel) {
+		this.thirdReferenceTimeSeriesLabel = thirdReferenceTimeSeriesLabel;
+	}
+	public String getComparisonSeriesLabel() {
 		return comparisonSeriesLabel;
 	}
-
+	public void setComparisonSeriesLabel(String comparisonSeriesLabel) {
+		this.comparisonSeriesLabel = comparisonSeriesLabel;
+	}
 	public Map<String, QualifierMetadata> getQualifierMetadata() {
 		return qualifierMetadata;
 	}
-
+	public void setQualifierMetadata(Map<String, QualifierMetadata> qualifierMetadata) {
+		this.qualifierMetadata = qualifierMetadata;
+	}
 	public String getStationName() {
 		return stationName;
 	}
-
+	public void setStationName(String stationName) {
+		this.stationName = stationName;
+	}
 	public String getStationId() {
 		return stationId;
 	}
-
-	public void setRequestingUser(String val) {
-		requestingUser = val;
+	public void setStationId(String stationId) {
+		this.stationId = stationId;
 	}
-
-	public void setTimezone(String val) {
-		timezone = val;
+	public boolean getExcludeZeroNegative() {
+		return excludeZeroNegative;
 	}
-
-	public void setStartDate(Instant val) {
-		startDate = val;
+	public void setExcludeZeroNegative(boolean excludeZeroNegative) {
+		this.excludeZeroNegative = excludeZeroNegative;
 	}
-
-	public void setEndDate(Instant val) {
-		endDate = val;
+	public boolean getExcludeMinMax() {
+		return excludeMinMax;
 	}
-
-	public void setTitle(String val) {
-		title = val;
+	public void setExcludeMinMax(boolean excludeMinMax) {
+		this.excludeMinMax = excludeMinMax;
 	}
-
-	public void setPrimaryParameter(String val) {
-		primarySeriesLabel = val;
+	public boolean getExcludeDiscrete() {
+		return excludeDiscrete;
 	}
-
-	public void setFirstStatDerivedParameter(String val) {
-		firstStatDerivedLabel = val;
+	public void setExcludeDiscrete(boolean excludeDiscrete) {
+		this.excludeDiscrete = excludeDiscrete;
 	}
-
-	public void setSecondStatDerivedParameter(String val) {
-		secondStatDerivedLabel = val;
+	public boolean isInverted() {
+		return isInverted;
 	}
-
-	public void setThirdStatDerivedParameter(String val) {
-		thirdStatDerivedLabel = val;
-	}
-
-	public void setFourthStatDerivedParameter(String val) {
-		fourthStatDerivedLabel = val;
-	}
-
-	public void setFirstReferenceTimeSeriesParameter(String val) {
-		firstReferenceTimeSeriesLabel = val;
-	}
-
-	public void setSecondReferenceTimeSeriesParameter(String val) {
-		secondReferenceTimeSeriesLabel = val;
-	}
-
-	public void setThirdReferenceTimeSeriesParameter(String val) {
-		thirdReferenceTimeSeriesLabel = val;
-	}
-
-	public void setComparisonSeriesParameter(String val) {
-		comparisonSeriesLabel = val;
-	}
-
-	public void setQualifierMetadata(Map<String, QualifierMetadata> val) {
-		qualifierMetadata = val;
-	}
-
-	public void setStationName(String val) {
-		stationName = val;
-	}
-
-	public void setStationId(String val) {
-		stationId = val;
+	public void setInverted(boolean isInverted) {
+		this.isInverted = isInverted;
 	}
 
 }

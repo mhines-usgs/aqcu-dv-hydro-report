@@ -28,15 +28,15 @@ public class FieldVisitDescriptionService {
 		this.aquariusRetrievalService = aquariusRetrievalService;
 	}
 
-	public List<AqcuFieldVisit> getDescriptions(DvHydroRequestParameters requestParameters) {
+	public List<AqcuFieldVisit> getDescriptions(String stationId, DvHydroRequestParameters requestParameters) {
 		List<FieldVisitDescription> descriptions = new ArrayList<>();
 		try {
-			FieldVisitDescriptionListServiceResponse fieldVisitResponse = get(requestParameters.getPrimaryTimeseriesIdentifier(),
+			FieldVisitDescriptionListServiceResponse fieldVisitResponse = get(stationId,
 					requestParameters.getStartInstant(),
 					requestParameters.getEndInstant());
 			descriptions = fieldVisitResponse.getFieldVisitDescriptions();
 		} catch (Exception e) {
-			String msg = "An unexpected error occurred while attempting to fetch TimeSeriesDataCorrectedRequest from Aquarius: ";
+			String msg = "An unexpected error occurred while attempting to fetch FieldVisitDescriptionListServiceRequest from Aquarius: ";
 			LOG.error(msg, e);
 			throw new RuntimeException(msg, e);
 		}

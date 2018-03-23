@@ -53,6 +53,15 @@ public class TimeSeriesDataCorrectedServiceTest {
 	}
 
 	@Test
+	public void get_Test() throws Exception {
+		parameters.setStartDate(DvHydroReportBuilderServiceTest.REPORT_START_DATE);
+		parameters.setEndDate(DvHydroReportBuilderServiceTest.REPORT_END_DATE);
+		TimeSeriesDataServiceResponse actual = service.get(parameters.getPrimaryTimeseriesIdentifier(), parameters);
+		assertEquals(3, actual.getQualifiers().size());
+		assertThat(actual.getQualifiers(), containsInAnyOrder(qualifierA, qualifierB, qualifierC));
+	}
+
+	@Test
 	public void getTimeSeriesDescriptions_happyTest() {
 		parameters.setStartDate(DvHydroReportBuilderServiceTest.REPORT_START_DATE);
 		parameters.setEndDate(DvHydroReportBuilderServiceTest.REPORT_END_DATE);

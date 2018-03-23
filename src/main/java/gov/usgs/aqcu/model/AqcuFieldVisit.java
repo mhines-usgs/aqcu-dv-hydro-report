@@ -2,6 +2,8 @@ package gov.usgs.aqcu.model;
 
 import java.time.temporal.Temporal;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+
 /**
  * The AQCU representation of a Field Visit.
  * 
@@ -9,19 +11,19 @@ import java.time.temporal.Temporal;
  */
 public class AqcuFieldVisit {
 	private String locationIdentifier;
-	
+
 	private Temporal startTime;
 	private Temporal endTime;
-	
+
 	private String identifier;
-	
+
 	private Boolean isValid;
 	private Temporal lastModified;
-	
+
 	private String party;
 	private String remarks;
 	private String weather;
-	
+
 	/**
 	 * Constructor that creates an AQCU FieldVisit with all of the necessary and
 	 * relevant  parameters.
@@ -49,155 +51,83 @@ public class AqcuFieldVisit {
 		this.weather = weather;
 	}
 
-	/**
-	 * Default Constructor for FieldVisit
-	 */
 	public AqcuFieldVisit() {
 	}
 
-	/**
-	 *
-	 * @return The location identifier 
-	 */
 	public String getLocationIdentifier() {
 		return locationIdentifier;
 	}
 
-	/**
-	 *
-	 * @return The start date & time
-	 */
 	public Temporal getStartTime() {
 		return startTime;
 	}
 
-	/**
-	 *
-	 * @return The end date & time
-	 */
 	public Temporal getEndTime() {
 		return endTime;
 	}
 
-	/**
-	 *
-	 * @return The unique identifier
-	 */
 	public String getIdentifier() {
 		return identifier;
 	}
 
-	/**
-	 *
-	 * @return Whether or not this field visit was valid
-	 */
 	public Boolean getIsValid() {
 		return isValid;
 	}
 
-	/**
-	 *
-	 * @return The date & time when the field visit was last modified
-	 */
 	public Temporal getLastModified() {
 		return lastModified;
 	}
 
-	/**
-	 *
-	 * @return The associated party
-	 */
 	public String getParty() {
 		return party;
 	}
 
-	/**
-	 *
-	 * @return The associated remarks
-	 */
 	public String getRemarks() {
 		return remarks;
 	}
 
-	/**
-	 *
-	 * @return The weather conditions
-	 */
 	public String getWeather() {
 		return weather;
 	}
 
-	/**
-	 *
-	 * @param locationIdentifier Location Identifier to set
-	 */
 	public void setLocationIdentifier(String locationIdentifier) {
 		this.locationIdentifier = locationIdentifier;
 	}
 
-	/**
-	 *
-	 * @param startTime Start Date & Time to set
-	 */
 	public void setStartTime(Temporal startTime) {
 		this.startTime = startTime;
 	}
 
-	/**
-	 *
-	 * @param endTime End Date & Time to set
-	 */
 	public void setEndTime(Temporal endTime) {
 		this.endTime = endTime;
 	}
 
-	/**
-	 *
-	 * @param identifier Unique Identifier to set
-	 */
 	public void setIdentifier(String identifier) {
 		this.identifier = identifier;
 	}
 
-	/**
-	 *
-	 * @param isValid Set whether or not this field visit was valid
-	 */
 	public void setIsValid(Boolean isValid) {
 		this.isValid = isValid;
 	}
 
-	/**
-	 *
-	 * @param lastModified The last modified date & time to set
-	 */
 	public void setLastModified(Temporal lastModified) {
 		this.lastModified = lastModified;
 	}
 
-	/**
-	 *
-	 * @param party The associated party information to set
-	 */
 	public void setParty(String party) {
 		this.party = party;
 	}
 
-	/**
-	 *
-	 * @param remarks The associated remarks to set
-	 */
 	public void setRemarks(String remarks) {
 		this.remarks = remarks;
 	}
 
-	/**
-	 *
-	 * @param weather The weather conditions to set
-	 */
 	public void setWeather(String weather) {
 		this.weather = weather;
 	}
-	
-	
+
+	public boolean equals(Object obj) {
+		return EqualsBuilder.reflectionEquals(this, obj);
+	}
+
 }

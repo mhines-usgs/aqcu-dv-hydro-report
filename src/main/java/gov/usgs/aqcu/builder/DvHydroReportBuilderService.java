@@ -1,43 +1,46 @@
 package gov.usgs.aqcu.builder;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.LinkedHashSet;
+import static gov.usgs.aqcu.util.ScientificArithmetic.add;
+import static gov.usgs.aqcu.util.ScientificArithmetic.multiply;
+import static gov.usgs.aqcu.util.ScientificArithmetic.subtract;
+
 import java.math.BigDecimal;
 import java.time.Instant;
-import com.google.gson.Gson;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
-import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.Approval;
-import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.ControlConditionActivity;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.ControlConditionType;
-import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.DischargeActivity;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.DischargeSummary;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.DoubleWithDisplay;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.FieldVisitDataServiceResponse;
-import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.FieldVisitDescription;
-import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.FieldVisitDescriptionListServiceResponse;
-import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.Qualifier;
-import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.QualifierMetadata;
-import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.QuantityWithDisplay;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.LocationDescription;
-import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.LocationDescriptionListServiceResponse;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDataServiceResponse;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDescription;
-import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDescriptionListByUniqueIdServiceResponse;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesPoint;
 
-import gov.usgs.aqcu.model.*;
+import gov.usgs.aqcu.model.AqcuFieldVisit;
+import gov.usgs.aqcu.model.AqcuFieldVisitMeasurement;
+import gov.usgs.aqcu.model.AqcuPoint;
+import gov.usgs.aqcu.model.DvHydroCorrectedData;
+import gov.usgs.aqcu.model.DvHydroMetadata;
+import gov.usgs.aqcu.model.DvHydroReport;
+import gov.usgs.aqcu.model.MeasurementGrade;
 import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
-import gov.usgs.aqcu.retrieval.*;
+import gov.usgs.aqcu.retrieval.FieldVisitDataService;
+import gov.usgs.aqcu.retrieval.FieldVisitDescriptionService;
+import gov.usgs.aqcu.retrieval.LocationDescriptionService;
+import gov.usgs.aqcu.retrieval.QualifierLookupService;
+import gov.usgs.aqcu.retrieval.TimeSeriesDataCorrectedService;
+import gov.usgs.aqcu.retrieval.TimeSeriesDescriptionService;
 
 @Component
 public class DvHydroReportBuilderService {	
@@ -50,7 +53,12 @@ public class DvHydroReportBuilderService {
 	private FieldVisitDescriptionService fieldVisitDescriptionListService; 
 	private FieldVisitDataService fieldVisitDataService;
 	private static final String ESTIMATED_QUALIFIER_VALUE = "ESTIMATED";
-	private static final String GAP_MARKER_POINT_VALUE = "EMPTY";
+	public static final String GAP_MARKER_POINT_VALUE = "EMPTY";
+
+	@Value("${sims.base.url}")
+	private String simsUrl;
+	@Value("${waterdata.base.url}")
+	private String waterdataUrl;
 
 	@Autowired
 	public DvHydroReportBuilderService(
@@ -73,52 +81,97 @@ public class DvHydroReportBuilderService {
 
 		Map<String, TimeSeriesDescription> timeSeriesDescriptions = timeSeriesDescriptionListService.getTimeSeriesDescriptions(requestParameters);
 
-		dvHydroReport.setReportMetadata(createDvHydroMetadata(requestParameters, timeSeriesDescriptions, requestingUser));
+		TimeSeriesDataServiceResponse primarySeriesDataResponse = timeSeriesDataCorrectedService.get(requestParameters.getPrimaryTimeseriesIdentifier(), requestParameters);
+
+		dvHydroReport.setReportMetadata(createDvHydroMetadata(requestParameters, timeSeriesDescriptions, primarySeriesDataResponse, requestingUser));
 
 		if (timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier()).getParameter().toString().contains("Discharge")) {
 			dvHydroReport.setFieldVisitMeasurements(buildFieldVisitMeasurements(requestParameters, dvHydroReport.getReportMetadata().getStationId()));
 		}
 
+		dvHydroReport.setPrimarySeriesQualifiers(primarySeriesDataResponse.getQualifiers());
+		dvHydroReport.setPrimarySeriesApprovals(primarySeriesDataResponse.getApprovals());
+
+		if (StringUtils.isNotBlank(requestParameters.getFirstStatDerivedIdentifier())) {
+			TimeSeriesDataServiceResponse tsdcs = timeSeriesDataCorrectedService.get(requestParameters.getFirstStatDerivedIdentifier(), requestParameters);
+			if (tsdcs != null) {
+				dvHydroReport.setFirstStatDerived(createDvHydroCorrectedData(tsdcs, requestParameters.getStartInstant(), requestParameters.getEndInstant()));
+			}
+		}
+
+		if (StringUtils.isNotBlank(requestParameters.getSecondStatDerivedIdentifier())) {
+			TimeSeriesDataServiceResponse tsdcs = timeSeriesDataCorrectedService.get(requestParameters.getSecondStatDerivedIdentifier(), requestParameters);
+			if (tsdcs != null) {
+				dvHydroReport.setSecondStatDerived(createDvHydroCorrectedData(tsdcs, requestParameters.getStartInstant(), requestParameters.getEndInstant()));
+			}
+		}
+
+		if (StringUtils.isNotBlank(requestParameters.getThirdStatDerivedIdentifier())) {
+			TimeSeriesDataServiceResponse tsdcs = timeSeriesDataCorrectedService.get(requestParameters.getThirdStatDerivedIdentifier(), requestParameters);
+			if (tsdcs != null) {
+				dvHydroReport.setThirdStatDerived(createDvHydroCorrectedData(tsdcs, requestParameters.getStartInstant(), requestParameters.getEndInstant()));
+			}
+		}
+
+		if (StringUtils.isNotBlank(requestParameters.getFourthStatDerivedIdentifier())) {
+			TimeSeriesDataServiceResponse tsdcs = timeSeriesDataCorrectedService.get(requestParameters.getFourthStatDerivedIdentifier(), requestParameters);
+			if (tsdcs != null) {
+				dvHydroReport.setFourthStatDerived(createDvHydroCorrectedData(tsdcs, requestParameters.getStartInstant(), requestParameters.getEndInstant()));
+			}
+		}
+
+		dvHydroReport.setSimsUrl(getSimsUrl(dvHydroReport.getReportMetadata().getStationId()));
+		dvHydroReport.setWaterdataUrl(getWaterdataUrl(dvHydroReport.getReportMetadata().getStationId()));
+
 		return dvHydroReport;
 	}
 
-	protected DvHydroMetadata createDvHydroMetadata(DvHydroRequestParameters requestParameters, Map<String, TimeSeriesDescription> timeSeriesDescriptions, String requestingUser) {
-
+	protected DvHydroMetadata createDvHydroMetadata(DvHydroRequestParameters requestParameters, Map<String, TimeSeriesDescription> timeSeriesDescriptions, TimeSeriesDataServiceResponse primarySeriesDataResponse, String requestingUser) {
+//		boolean inverted = false; GW ONLY!!!??
+//		try {
+//			inverted = (Boolean) primaryTsMetadata.get("inverted");
+//		} catch (Exception e) {
+//			log.trace("No inverted flag found");
+//		}
 		DvHydroMetadata metadata = new DvHydroMetadata();
 
+		metadata.setExcludeDiscrete(requestParameters.isExcludeDiscrete());
+		metadata.setExcludeMinMax(requestParameters.isExcludeMinMax());
+		metadata.setExcludeZeroNegative(requestParameters.isExcludeZeroNegative());
 		metadata.setRequestingUser(requestingUser);
-		metadata.setTimezone("Etc/GMT" + (int)(-1 * timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier()).getUtcOffset()));
+		metadata.setTimezone("Etc/GMT+" + (int)(-1 * timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier()).getUtcOffset()));
 		metadata.setStartDate(requestParameters.getStartInstant());
 		metadata.setEndDate(requestParameters.getEndInstant());
 		metadata.setTitle("DV Hydrograph");
-		metadata.setPrimaryParameter(timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier()).getIdentifier());
+		metadata.setPrimarySeriesLabel(timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier()).getIdentifier());
 
 		if (timeSeriesDescriptions.containsKey(requestParameters.getFirstStatDerivedIdentifier())) {
-			metadata.setFirstStatDerivedParameter(timeSeriesDescriptions.get(requestParameters.getFirstStatDerivedIdentifier()).getIdentifier());
+			metadata.setFirstStatDerived(requestParameters.getFirstStatDerivedIdentifier());
+			metadata.setFirstStatDerivedLabel(timeSeriesDescriptions.get(requestParameters.getFirstStatDerivedIdentifier()).getIdentifier());
 		}
 		if (timeSeriesDescriptions.containsKey(requestParameters.getSecondStatDerivedIdentifier())) {
-			metadata.setSecondStatDerivedParameter(timeSeriesDescriptions.get(requestParameters.getSecondStatDerivedIdentifier()).getIdentifier());
+			metadata.setSecondStatDerivedLabel(timeSeriesDescriptions.get(requestParameters.getSecondStatDerivedIdentifier()).getIdentifier());
 		}
 		if (timeSeriesDescriptions.containsKey(requestParameters.getThirdStatDerivedIdentifier())) {
-			metadata.setThirdStatDerivedParameter(timeSeriesDescriptions.get(requestParameters.getThirdStatDerivedIdentifier()).getIdentifier());
+			metadata.setThirdStatDerivedLabel(timeSeriesDescriptions.get(requestParameters.getThirdStatDerivedIdentifier()).getIdentifier());
 		}
 		if (timeSeriesDescriptions.containsKey(requestParameters.getFourthStatDerivedIdentifier())) {
-			metadata.setFourthStatDerivedParameter(timeSeriesDescriptions.get(requestParameters.getFourthStatDerivedIdentifier()).getIdentifier());
+			metadata.setFourthStatDerivedLabel(timeSeriesDescriptions.get(requestParameters.getFourthStatDerivedIdentifier()).getIdentifier());
 		}
 		if (timeSeriesDescriptions.containsKey(requestParameters.getFirstReferenceIdentifier())) {
-			metadata.setFirstReferenceTimeSeriesParameter(timeSeriesDescriptions.get(requestParameters.getFirstReferenceIdentifier()).getIdentifier());
+			metadata.setFirstReferenceTimeSeriesLabel(timeSeriesDescriptions.get(requestParameters.getFirstReferenceIdentifier()).getIdentifier());
 		}
 		if (timeSeriesDescriptions.containsKey(requestParameters.getSecondReferenceIdentifier())) {
-			metadata.setSecondReferenceTimeSeriesParameter(timeSeriesDescriptions.get(requestParameters.getSecondReferenceIdentifier()).getIdentifier());
+			metadata.setSecondReferenceTimeSeriesLabel(timeSeriesDescriptions.get(requestParameters.getSecondReferenceIdentifier()).getIdentifier());
 		}
 		if (timeSeriesDescriptions.containsKey(requestParameters.getThirdReferenceIdentifier())) {
-			metadata.setThirdReferenceTimeSeriesParameter(timeSeriesDescriptions.get(requestParameters.getThirdReferenceIdentifier()).getIdentifier());
+			metadata.setThirdReferenceTimeSeriesLabel(timeSeriesDescriptions.get(requestParameters.getThirdReferenceIdentifier()).getIdentifier());
 		}
 		if (timeSeriesDescriptions.containsKey(requestParameters.getComparisonTimeseriesIdentifier())) {
-			metadata.setComparisonSeriesParameter(timeSeriesDescriptions.get(requestParameters.getComparisonTimeseriesIdentifier()).getIdentifier());
+			metadata.setComparisonSeriesLabel(timeSeriesDescriptions.get(requestParameters.getComparisonTimeseriesIdentifier()).getIdentifier());
 		}
 
-		metadata.setQualifierMetadata(qualifierLookupService.getByQualifierList(timeSeriesDataCorrectedService.getQualifiers(requestParameters)));
+		metadata.setQualifierMetadata(qualifierLookupService.getByQualifierList(primarySeriesDataResponse.getQualifiers()));
 
 		LocationDescription locationDescription = locationDescriptionListService.getByLocationIdentifier(timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier()).getLocationIdentifier());
 		metadata.setStationName(locationDescription.getName());
@@ -128,42 +181,98 @@ public class DvHydroReportBuilderService {
 	}
 
 	protected List<AqcuFieldVisitMeasurement> buildFieldVisitMeasurements(DvHydroRequestParameters requestParameters, String locationIdentifier) {
-		List<AqcuFieldVisitMeasurement> aqcuFieldVisitMeasurements = null;
+		List<AqcuFieldVisitMeasurement> aqcuFieldVisitMeasurements = new ArrayList<>();
 
-		List<FieldVisitDescription> fieldVisitDescriptions = fieldVisitDescriptionListService.getDescriptions(requestParameters);
+		List<AqcuFieldVisit> fieldVisitDescriptions = fieldVisitDescriptionListService.getDescriptions(locationIdentifier, requestParameters);
 
 		if (fieldVisitDescriptions != null){
-			List<AqcuFieldVisit> fieldVisits = createFieldVisits(fieldVisitDescriptions);
-
-			aqcuFieldVisitMeasurements = new ArrayList<>();
-
-			for (AqcuFieldVisit fvd : fieldVisits){
-				aqcuFieldVisitMeasurements.addAll(createFieldVisitMeasurement(
-						fvd, 
-						null,
-						false));
+			for (AqcuFieldVisit fvd : fieldVisitDescriptions){
+				aqcuFieldVisitMeasurements.addAll(createFieldVisitMeasurement(fvd));
 			}
 		}
 
 		return aqcuFieldVisitMeasurements;
 	}
 
-	private List<AqcuFieldVisit> createFieldVisits(List<FieldVisitDescription> fieldVisitDescriptions) {
-		List<AqcuFieldVisit> fieldVisits = new ArrayList<>();
+	protected List<AqcuFieldVisitMeasurement> createFieldVisitMeasurement(AqcuFieldVisit visit) {
+		List<AqcuFieldVisitMeasurement> ret = new ArrayList<AqcuFieldVisitMeasurement>();
 
-		for(FieldVisitDescription info : fieldVisitDescriptions) {
-			fieldVisits.add(new AqcuFieldVisit(
-					info.getLocationIdentifier(),
-					info.getStartTime(), 
-					info.getEndTime(), 
-					info.getIdentifier(), 
-					info.getIsValid(),
-					info.getLastModified(), 
-					info.getParty(), 
-					info.getRemarks(), 
-					info.getWeather()));
+		FieldVisitDataServiceResponse fieldVisitDataServiceResponse = fieldVisitDataService.get(visit.getIdentifier());
+
+		if (fieldVisitDataServiceResponse.getDischargeActivities() != null) {
+			ret = fieldVisitDataServiceResponse.getDischargeActivities().stream()
+				.filter(x -> x.getDischargeSummary() != null)
+				.filter(y -> y.getDischargeSummary().getDischarge() != null)
+				.map(z -> {return getFieldVisitMeasurement(visit, getControlCondition(fieldVisitDataServiceResponse), z.getDischargeSummary());})
+				.collect(Collectors.toList());
 		}
-		return fieldVisits;
+
+		return ret;
+	}
+
+	protected String getControlCondition(FieldVisitDataServiceResponse fieldVisitDataServiceResponse) {
+		ControlConditionType controlCondition = fieldVisitDataServiceResponse.getControlConditionActivity() != null ? 
+				fieldVisitDataServiceResponse.getControlConditionActivity().getControlCondition() : null;
+
+		return controlCondition != null ? controlCondition.toString() : null;
+	}
+
+	protected AqcuFieldVisitMeasurement getFieldVisitMeasurement(AqcuFieldVisit visit, String controlCondition, DischargeSummary dischargeSummary) {
+		MeasurementGrade grade = MeasurementGrade.valueFrom(dischargeSummary.getMeasurementGrade().name());
+
+		AqcuFieldVisitMeasurement fieldVisitMeasurement = calculateError(grade,
+				dischargeSummary.getMeasurementId(),
+				controlCondition,
+				getRoundedValue(dischargeSummary.getDischarge()),
+				dischargeSummary.getDischarge().getUnit(),
+				dischargeSummary.getMeanGageHeight().getUnit(),
+				dischargeSummary.getMeasurementStartTime(), 
+				visit.getIdentifier()
+				);
+
+		fieldVisitMeasurement.setMeanGageHeight(getRoundedValue(dischargeSummary.getMeanGageHeight()));
+		return fieldVisitMeasurement;
+	}
+
+	/**
+	 * Calculates the error of the associated field visit measurement
+	 * 
+	 * @param measurementNumber The number of the actual measurement
+	 * @param controlCondition The associated control condition
+	 * @param dischargeValue The associated discharge value
+	 * @param dischargeUnits The units associated with the discharge value
+	 * @param meanGageHeightUnits The units associated with the gage height
+	 * @param dateTime The date and time of the measurement
+	 * @param fieldVisitIdentifier The unique identifier of the associated field visit
+	 * @return
+	 */
+	protected AqcuFieldVisitMeasurement calculateError(MeasurementGrade grade, String measurementNumber, String controlCondition, BigDecimal dischargeValue, 
+			String dischargeUnits, String meanGageHeightUnits, Instant dateTime, String fieldVisitIdentifier) {
+
+		BigDecimal errorMaxDischargeInFeet = add(dischargeValue, multiply(dischargeValue, grade.getPercentageOfError()));
+		BigDecimal errorMinDischargeInFeet = subtract(dischargeValue, multiply(dischargeValue, grade.getPercentageOfError()));
+
+		AqcuFieldVisitMeasurement ret = new AqcuFieldVisitMeasurement(measurementNumber, controlCondition, dischargeValue, dischargeUnits, meanGageHeightUnits,
+				errorMaxDischargeInFeet, errorMinDischargeInFeet, grade, dateTime, fieldVisitIdentifier);
+
+		return ret;
+	}
+
+	protected BigDecimal getRoundedValue(DoubleWithDisplay referenceVal){
+		BigDecimal ret;
+
+		if (referenceVal != null) {
+			String tmp = referenceVal.getDisplay();
+			if (tmp == null || tmp.equals(GAP_MARKER_POINT_VALUE)) {
+				//Should be null but just in case.
+				ret = referenceVal.getNumeric() == null ? null : BigDecimal.valueOf(referenceVal.getNumeric());
+			} else {
+				ret = new BigDecimal(tmp);
+			}
+		} else {
+			ret = null;
+		}
+		return ret;
 	}
 
 
@@ -173,167 +282,11 @@ public class DvHydroReportBuilderService {
 
 
 
-	private void temp() {
-			TimeSeriesDataServiceResponse firstStatDerivedDataResponse = null;
-			TimeSeriesDataServiceResponse secondStatDerivedDataResponse = null;
-			TimeSeriesDataServiceResponse thirdStatDerivedDataResponse = null;
-			TimeSeriesDataServiceResponse fourthStatDerivedDataResponse = null;
-			TimeSeriesDataServiceResponse firstReferenceDataResponse = null;
-			TimeSeriesDataServiceResponse secondReferenceDataResponse = null;
-			TimeSeriesDataServiceResponse thirdReferenceDataResponse = null;
-			TimeSeriesDataServiceResponse comparisonSeriesDataResponse = null;
-			FieldVisitDescriptionListServiceResponse fieldVisitDescriptions = null;
 
-//			boolean isDischarge = false;
-//			try {
-//				isDischarge = (Boolean) primaryDescription.getParameter().toString().contains("Discharge");
-//			} catch (Exception e) {
-//				LOG.trace("No discharge involved");
-//			}
-//		//Fetch Location Descriptions
-//		LocationDescriptionListServiceResponse locationResponse = locationDescriptionListService.get(primaryDescription.getLocationIdentifier());
-//		LocationDescription locationDescription = locationResponse.getLocationDescriptions().get(0);	
-//
-//		//Fetch Primary Series Data
-//		TimeSeriesDataServiceResponse primarySeriesDataResponse = timeSeriesDataCorrectedService.get(primaryTimeseriesIdentifier, startDate, endDate);
-//
-//		//Fetch First Stat-Derived Series Data, if exists
-//		if (firstStatDerivedIdentifier != null) {
-//			firstStatDerivedDataResponse = timeSeriesDataCorrectedService.get(firstStatDerivedIdentifier, startDate, endDate);
-//		}
-//
-//		//Fetch Second Stat-Derived Series Data, if exists
-//		if (secondStatDerivedIdentifier != null) {
-//			secondStatDerivedDataResponse = timeSeriesDataCorrectedService.get(secondStatDerivedIdentifier, startDate, endDate);
-//		}
-//
-//		//Fetch Third Stat-Derived Series Data, if exists
-//		if (thirdStatDerivedIdentifier != null) {
-//			thirdStatDerivedDataResponse = timeSeriesDataCorrectedService.get(thirdStatDerivedIdentifier, startDate, endDate);
-//		}
-//
-//		//Fetch Fourth Stat-Derived Series Data, if exists
-//		if (fourthStatDerivedIdentifier != null) {
-//			fourthStatDerivedDataResponse = timeSeriesDataCorrectedService.get(fourthStatDerivedIdentifier, startDate, endDate);
-//		}
-//
-//		//Fetch First Reference Series Data, if exists
-//		if (firstReferenceIdentifier != null) {
-//			firstReferenceDataResponse = timeSeriesDataCorrectedService.get(firstReferenceIdentifier, startDate, endDate);
-//		}
-//
-//		//Fetch Second Reference Series Data, if exists
-//		if (secondReferenceIdentifier != null) {
-//			secondReferenceDataResponse = timeSeriesDataCorrectedService.get(secondReferenceIdentifier, startDate, endDate);
-//		}
-//
-//		//Fetch Third Reference Series Data, if exists
-//		if (thirdReferenceIdentifier != null) {
-//			thirdReferenceDataResponse = timeSeriesDataCorrectedService.get(thirdReferenceIdentifier, startDate, endDate);
-//		}
-//
-//		//Fetch Comparison Series Data, if exists
-//		if (comparisonTimeseriesIdentifier != null) {
-//			comparisonSeriesDataResponse = timeSeriesDataCorrectedService.get(comparisonTimeseriesIdentifier, startDate, endDate);
-//		}
-//
-//		//Additional Metadata Lookups
-//		List<QualifierMetadata> qualifierMetadataList = qualifierLookupService.getByQualifierList(primarySeriesDataResponse.getQualifiers());
-//
-//		List<Qualifier> qualifierList = primarySeriesDataResponse.getQualifiers();
-//
-//		List<Approval> approvalList = primarySeriesDataResponse.getApprovals();
-//
-		DvHydroReport report = createReport(
-			primarySeriesDataResponse, 
-			primaryDescription, 
-			firstStatDerivedDataResponse,
-			secondStatDerivedDataResponse,
-			thirdStatDerivedDataResponse,
-			fourthStatDerivedDataResponse,
-			firstReferenceDataResponse,
-			secondReferenceDataResponse,
-			thirdReferenceDataResponse,
-			comparisonSeriesDataResponse,
-			firstStatDerivedDescription,
-			secondStatDerivedDescription,
-			thirdStatDerivedDescription,
-			fourthStatDerivedDescription,
-			firstReferenceDescription,
-			secondReferenceDescription,
-			thirdReferenceDescription,
-			comparisonTimeseriesDescription,
-			locationDescription,
-			approvalList,
-			qualifierList,
-			qualifierMetadataList,
-			fieldVisitDescriptions,
-			startDate, 
-			endDate, 
-			requestingUser);
-//
-//		return report;
-	}
 
-	private DvHydroReport createReport (
-		TimeSeriesDataServiceResponse primaryDataResponse,
-		TimeSeriesDescription primaryDescription,
-		TimeSeriesDataServiceResponse firstStatDerivedDataResponse,
-		TimeSeriesDataServiceResponse secondStatDerivedDataResponse,
-		TimeSeriesDataServiceResponse thirdStatDerivedDataResponse,
-		TimeSeriesDataServiceResponse fourthStatDerivedDataResponse,
-		TimeSeriesDataServiceResponse firstReferenceDataResponse,
-		TimeSeriesDataServiceResponse secondReferenceDataResponse,
-		TimeSeriesDataServiceResponse thirdReferenceDataResponse,
-		TimeSeriesDataServiceResponse comparisonSeriesDataResponse,
-		TimeSeriesDescription firstStatDerivedDescription,
-		TimeSeriesDescription secondStatDerivedDescription,
-		TimeSeriesDescription thirdStatDerivedDescription,
-		TimeSeriesDescription fourthStatDerivedDescription,
-		TimeSeriesDescription firstReferenceDescription,
-		TimeSeriesDescription secondReferenceDescription,
-		TimeSeriesDescription thirdReferenceDescription,
-		TimeSeriesDescription comparisonTimeseriesDescription,
-		LocationDescription locationDescription,
-		List<Approval> approvalList,
-		List<Qualifier> qualifierList,
-		List<QualifierMetadata> qualifierMetadataList,
-		FieldVisitDescriptionListServiceResponse fieldVisitDescriptions,
-		Instant startDate,
-		Instant endDate,
-		String requestingUser) throws Exception {
-			DvHydroReport report = new DvHydroReport();
 
-			//Add Primary TS Metadata
-			report.setPrimaryTsMetadata(primaryDescription);
 
-			//Add First Stat-Derived Data, if exists
-			if (firstStatDerivedDataResponse != null) {
-				report.setFirstStatDerivedData(createDvHydroCorrectedData(firstStatDerivedDataResponse, startDate, endDate));
-			}
-
-			//Add Second Stat-Derived Data, if exists
-			if (secondStatDerivedDataResponse != null) {
-				report.setFirstStatDerivedData(createDvHydroCorrectedData(secondStatDerivedDataResponse, startDate, endDate));
-			}
-
-			//Add Third Stat-Derived Data, if exists
-			if (thirdStatDerivedDataResponse != null) {
-				report.setFirstStatDerivedData(createDvHydroCorrectedData(thirdStatDerivedDataResponse, startDate, endDate));
-			}
-
-			//Add Fourth Stat-Derived Data, if exists
-			if (fourthStatDerivedDataResponse != null) {
-				report.setFirstStatDerivedData(createDvHydroCorrectedData(firstStatDerivedDataResponse, startDate, endDate));
-			}
-
-			report.setQualifier(qualifierList);
-
-			report.setApproval(approvalList);
-			return report;
-	}
-
-	private DvHydroCorrectedData createDvHydroCorrectedData(TimeSeriesDataServiceResponse response, Instant startDate, Instant endDate) {
+	protected DvHydroCorrectedData createDvHydroCorrectedData(TimeSeriesDataServiceResponse response, Instant startDate, Instant endDate) {
 		DvHydroCorrectedData data = new DvHydroCorrectedData();
 
 		/*  Getting date errors, don't feel like dealing with it yet
@@ -358,115 +311,165 @@ public class DvHydroReportBuilderService {
 		return data;
 	}
 
-	private List<AqcuPoint> createDvHydroPoints(List<TimeSeriesPoint> timeSeriesPoints){
-		List<AqcuPoint> dvPoints =  new ArrayList<>();
-		for(TimeSeriesPoint pt : timeSeriesPoints) {
-			AqcuPoint dvPoint = new AqcuPoint();
-			dvPoint.setTime(pt.getTimestamp().getDateTimeOffset());
-			dvPoint.setValue(getRoundedValue(pt.getValue()));
-			dvPoints.add(dvPoint);
-		}
+	protected List<AqcuPoint> createDvHydroPoints(List<TimeSeriesPoint> timeSeriesPoints){
+		Drop first point? 
+		List<AqcuPoint> dvPoints = timeSeriesPoints.parallelStream()
+				.map(x -> {AqcuPoint dvPoint = new AqcuPoint();
+					dvPoint.setTime(x.getTimestamp().getDateTimeOffset());
+					dvPoint.setValue(getRoundedValue(x.getValue()));
+					return dvPoint;})
+				.collect(Collectors.toList());
 		return dvPoints;
 	}
 
-	/**
-	 * Converts Aquarius Field Visits to AQCU FieldVisit objects
-	 * 
-	 * @param visitsData The Aquarius Field Visit service response
-	 * @return The list of converted FieldVisit obejcts
-	 */
-	private List<AqcuFieldVisitMeasurement> createFieldVisitMeasurement(
-			AqcuFieldVisit visit, 
-			String ratingModelIdentifier,
-			Boolean excludeIceCover) {
-		List<AqcuFieldVisitMeasurement> ret = new ArrayList<AqcuFieldVisitMeasurement>();
-
-		FieldVisitDataServiceResponse fieldVisitDataServiceResponse = fieldVisitDataService.get(visit.getIdentifier());
-
-		if(excludeIceCover != null && excludeIceCover && isIceCover(fieldVisitDataServiceResponse)) {
-			return ret;
+	protected String getSimsUrl(String stationId) {
+		String url = null;
+		if (simsUrl != null) {
+			url = simsUrl + "?site_no=" + stationId;
 		}
-
-		ControlConditionType controlCondition =  fieldVisitDataServiceResponse.getControlConditionActivity() != null ? fieldVisitDataServiceResponse.getControlConditionActivity().getControlCondition() : null;
-
-		String controlConditionString = controlCondition != null ? controlCondition.toString() : null;
-
-		if (fieldVisitDataServiceResponse.getDischargeActivities() != null) {
-			for (DischargeActivity disActivity : fieldVisitDataServiceResponse.getDischargeActivities()) {
-				DischargeSummary dischargeSummary = disActivity.getDischargeSummary();
-				if (dischargeSummary != null) {
-					QuantityWithDisplay discharge = dischargeSummary.getDischarge(); 
-					if (dischargeSummary.getDischarge() != null) {
-						AqcuFieldVisitMeasurement.MeasurementGrade grade = AqcuFieldVisitMeasurement.MeasurementGrade.valueFrom(dischargeSummary.getMeasurementGrade().name());
-						String measurementNumber = dischargeSummary.getMeasurementId();
-						AqcuFieldVisitMeasurement errorBar = grade.calculateError(measurementNumber, controlConditionString, 
-								getRoundedValue(discharge), dischargeSummary.getDischarge().getUnit(),
-								dischargeSummary.getMeanGageHeight().getUnit(), dischargeSummary.getMeasurementStartTime(), 
-								visit.getIdentifier());
-						errorBar.setMeanGageHeight(getRoundedValue(dischargeSummary.getMeanGageHeight()));
-						errorBar.setRatingModelIdentifier(ratingModelIdentifier);
-						ret.add(errorBar);
-					}
-				}
-			}
-		}
-
-		return ret;
+		return url;
 	}
+
+	protected String getWaterdataUrl(String stationId) {
+		String url = null;
+		if( waterdataUrl != null) {
+			url = waterdataUrl + "?site_no=" + stationId;
+		}
+		return url;
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//	private void temp() {
+//			TimeSeriesDataServiceResponse firstStatDerivedDataResponse = null;
+//			TimeSeriesDataServiceResponse secondStatDerivedDataResponse = null;
+//			TimeSeriesDataServiceResponse thirdStatDerivedDataResponse = null;
+//			TimeSeriesDataServiceResponse fourthStatDerivedDataResponse = null;
+//			TimeSeriesDataServiceResponse firstReferenceDataResponse = null;
+//			TimeSeriesDataServiceResponse secondReferenceDataResponse = null;
+//			TimeSeriesDataServiceResponse thirdReferenceDataResponse = null;
+//			TimeSeriesDataServiceResponse comparisonSeriesDataResponse = null;
+//			FieldVisitDescriptionListServiceResponse fieldVisitDescriptions = null;
+//
+//			boolean isDischarge = false;
+//			try {
+//				isDischarge = (Boolean) primaryDescription.getParameter().toString().contains("Discharge");
+//			} catch (Exception e) {
+//				LOG.trace("No discharge involved");
+//			}
+//
+//		//Fetch First Reference Series Data, if exists
+//		if (firstReferenceIdentifier != null) {
+//			firstReferenceDataResponse = timeSeriesDataCorrectedService.get(firstReferenceIdentifier, startDate, endDate);
+//		}
+//
+//		//Fetch Second Reference Series Data, if exists
+//		if (secondReferenceIdentifier != null) {
+//			secondReferenceDataResponse = timeSeriesDataCorrectedService.get(secondReferenceIdentifier, startDate, endDate);
+//		}
+//
+//		//Fetch Third Reference Series Data, if exists
+//		if (thirdReferenceIdentifier != null) {
+//			thirdReferenceDataResponse = timeSeriesDataCorrectedService.get(thirdReferenceIdentifier, startDate, endDate);
+//		}
+//
+//		//Fetch Comparison Series Data, if exists
+//		if (comparisonTimeseriesIdentifier != null) {
+//			comparisonSeriesDataResponse = timeSeriesDataCorrectedService.get(comparisonTimeseriesIdentifier, startDate, endDate);
+//		}
+//
+//		DvHydroReport report = createReport(
+//			primarySeriesDataResponse, 
+//			firstStatDerivedDataResponse,
+//			secondStatDerivedDataResponse,
+//			thirdStatDerivedDataResponse,
+//			fourthStatDerivedDataResponse,
+//			firstReferenceDataResponse,
+//			secondReferenceDataResponse,
+//			thirdReferenceDataResponse,
+//			comparisonSeriesDataResponse,
+//			firstStatDerivedDescription,
+//			secondStatDerivedDescription,
+//			thirdStatDerivedDescription,
+//			fourthStatDerivedDescription,
+//			firstReferenceDescription,
+//			secondReferenceDescription,
+//			thirdReferenceDescription,
+//			comparisonTimeseriesDescription,
+//			locationDescription,
+//			fieldVisitDescriptions,
+//			startDate, 
+//			endDate, 
+//			requestingUser);
+//
+//		return report;
+//	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	/**
 	 * Returns whether or not the supplied field visit had ice cover when it was performed
 	 * @param fieldVisitDataResponse The Aquarius field visit service response to check
 	 * @return TRUE - Ice Cover was present | FALSE - Ice Cover was not present
 	 */
-	public boolean isIceCover(FieldVisitDataServiceResponse fieldVisitDataResponse) {
-		boolean isIceCover = false;
-		ControlConditionActivity c = fieldVisitDataResponse.getControlConditionActivity();
+//	public boolean isIceCover(FieldVisitDataServiceResponse fieldVisitDataResponse) {
+//		boolean isIceCover = false;
+//		ControlConditionActivity c = fieldVisitDataResponse.getControlConditionActivity();
+//
+//		if(c != null) {
+//			for(ControlConditionType iceCoverType : ICE_COVER_CONTROL_CONDITIONS) {
+//				if(c.getControlCondition().equals(iceCoverType)) {
+//					isIceCover = true;
+//					break;
+//				}
+//			}
+//		}
+//
+//		return isIceCover;
+//	}
 
-		if(c != null) {
-			for(ControlConditionType iceCoverType : ICE_COVER_CONTROL_CONDITIONS) {
-				if(c.getControlCondition().equals(iceCoverType)) {
-					isIceCover = true;
-					break;
-				}
-			}
-		}
 
-		return isIceCover;
-	}
 
-	private BigDecimal getRoundedValue(DoubleWithDisplay referenceVal){
-		BigDecimal ret;
+//	private static final List<ControlConditionType> ICE_COVER_CONTROL_CONDITIONS = Arrays.asList(new ControlConditionType[] {
+//			ControlConditionType.IceCover,
+//			ControlConditionType.IceShore,
+//			ControlConditionType.IceAnchor
+//	});
 
-		if (referenceVal != null) {
-			String tmp = referenceVal.getDisplay();
-			if (tmp == null || tmp.equals(GAP_MARKER_POINT_VALUE)) {
-				ret = BigDecimal.valueOf(referenceVal.getNumeric()); //Should be null but just in case.
-			} else {
-				ret = new BigDecimal(tmp);
-			}
-		} else {
-			ret = null;
-		}
-		return ret;
-	}
-
-	private static final List<ControlConditionType> ICE_COVER_CONTROL_CONDITIONS = Arrays.asList(new ControlConditionType[] {
-			ControlConditionType.IceCover,
-			ControlConditionType.IceShore,
-			ControlConditionType.IceAnchor
-	});
-
-	private String createReportURL(String reportType, Map<String, String> parameters) {
-		String reportUrl = BASE_URL + reportType + "?";
-		
-		for(Map.Entry<String, String> entry : parameters.entrySet()) {
-			if(entry.getKey() != null && entry.getKey().length() > 0) {
-				reportUrl += entry.getKey() + "=" + entry.getValue() + "&";
-			}
-		}
-		
-		return reportUrl.substring(0, reportUrl.length()-1);
-	}
+//	private String createReportURL(String reportType, Map<String, String> parameters) {
+//		String reportUrl = BASE_URL + reportType + "?";
+//		
+//		for(Map.Entry<String, String> entry : parameters.entrySet()) {
+//			if(entry.getKey() != null && entry.getKey().length() > 0) {
+//				reportUrl += entry.getKey() + "=" + entry.getValue() + "&";
+//			}
+//		}
+//		
+//		return reportUrl.substring(0, reportUrl.length()-1);
+//	}
 
 }
