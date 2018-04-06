@@ -3,7 +3,7 @@
     <groupId>gov.usgs.aqcu</groupId>
     <artifactId>aqcu-dv-hydro-report</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <packaging>war</packaging>
+    <packaging>jar</packaging>
 
 
     <properties>
