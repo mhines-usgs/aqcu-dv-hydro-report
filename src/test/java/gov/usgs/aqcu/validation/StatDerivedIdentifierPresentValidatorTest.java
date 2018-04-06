@@ -9,7 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
+import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 
 public class StatDerivedIdentifierPresentValidatorTest {
 
@@ -17,12 +17,12 @@ public class StatDerivedIdentifierPresentValidatorTest {
 	protected ConstraintValidatorContext context;
 
 	protected StatDerivedIdentifierPresentValidator validator;
-	protected DvHydroRequestParameters params;
+	protected DvHydrographRequestParameters params;
 
 	@Before
 	public void setup() {
 		validator = new StatDerivedIdentifierPresentValidator();
-		params = new DvHydroRequestParameters();
+		params = new DvHydrographRequestParameters();
 		params.setLastMonths(1);
 	}
 

@@ -1,21 +1,20 @@
 package gov.usgs.aqcu.retrieval;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.ZoneOffset;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
-import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.Qualifier;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDataCorrectedServiceRequest;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDataServiceResponse;
 
-import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
+import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 
-@Component
+@Repository
 public class TimeSeriesDataCorrectedService {
 	private static final Logger LOG = LoggerFactory.getLogger(TimeSeriesDataCorrectedService.class);
 
@@ -26,27 +25,17 @@ public class TimeSeriesDataCorrectedService {
 		this.aquariusRetrievalService = aquariusRetrievalService;
 	}
 
-	public List<Qualifier> getQualifiers(DvHydroRequestParameters requestParameters) {
-		List<Qualifier> qualifiers = new ArrayList<>();
-		try {
-			TimeSeriesDataServiceResponse timeSeriesResponse = get(requestParameters.getPrimaryTimeseriesIdentifier(),
-					requestParameters.getStartInstant(),
-					requestParameters.getEndInstant());
-			qualifiers = timeSeriesResponse.getQualifiers();
-		} catch (Exception e) {
-			String msg = "An unexpected error occurred while attempting to fetch TimeSeriesDataCorrectedRequest from Aquarius: ";
-			LOG.error(msg, e);
-			throw new RuntimeException(msg, e);
-		}
-		return qualifiers;
-	}
-
-	public TimeSeriesDataServiceResponse get(String timeseriesIdentifier, DvHydroRequestParameters requestParameters) {
+	public TimeSeriesDataServiceResponse get(String timeseriesIdentifier, DvHydrographRequestParameters requestParameters, boolean isDaily, ZoneOffset zoneOffset) {
 		TimeSeriesDataServiceResponse timeSeriesResponse = new TimeSeriesDataServiceResponse();
+
+		//Daily values time series need to be offset a day into the future to handle the "2400" situation.
+		Instant startDate = adjustIfDv(requestParameters.getStartInstant(zoneOffset), isDaily);
+		Instant endDate = adjustIfDv(requestParameters.getEndInstant(zoneOffset), isDaily);
+
 		try {
 			timeSeriesResponse = get(timeseriesIdentifier,
-					requestParameters.getStartInstant(),
-					requestParameters.getEndInstant());
+					startDate,
+					endDate);
 		} catch (Exception e) {
 			String msg = "An unexpected error occurred while attempting to fetch TimeSeriesDataCorrectedRequest from Aquarius: ";
 			LOG.error(msg, e);
@@ -55,15 +44,18 @@ public class TimeSeriesDataCorrectedService {
 		return timeSeriesResponse;
 	}
 
-	protected TimeSeriesDataServiceResponse get(String primaryTimeseriesIdentifier, Instant startDate, Instant endDate) throws Exception {
+	protected TimeSeriesDataServiceResponse get(String timeSeriesIdentifier, Instant startDate, Instant endDate) throws Exception {
 		TimeSeriesDataCorrectedServiceRequest request = new TimeSeriesDataCorrectedServiceRequest()
-				.setTimeSeriesUniqueId(primaryTimeseriesIdentifier)
+				.setTimeSeriesUniqueId(timeSeriesIdentifier)
 				.setQueryFrom(startDate)
 				.setQueryTo(endDate)
 				.setApplyRounding(true)
-				.setUtcOffset(value);
-		TimeSeriesDataServiceResponse timeSeriesResponse  = aquariusRetrievalService.executePublishApiRequest(request);
+				.setIncludeGapMarkers(true);
+		TimeSeriesDataServiceResponse timeSeriesResponse = aquariusRetrievalService.executePublishApiRequest(request);
 		return timeSeriesResponse;
 	}
 
+	protected Instant adjustIfDv(Instant instant, boolean isDaily) {
+		return isDaily ? instant.plus(Duration.ofDays(1)) : instant;
+	}
 }

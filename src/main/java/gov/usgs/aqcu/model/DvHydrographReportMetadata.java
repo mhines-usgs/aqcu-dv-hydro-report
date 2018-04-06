@@ -1,77 +1,29 @@
 package gov.usgs.aqcu.model;
 
-import java.time.Instant;
-import java.util.Map;
+public class DvHydrographReportMetadata extends ReportMetadata {	
 
-import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.QualifierMetadata;
-
-public class DvHydroMetadata {	
-
-	private String requestingUser;
-	private String timezone;
-	private Instant startDate;
-	private Instant endDate;
-	private String title;
-	private String primarySeriesLabel;
-	private String firstStatDerived;
+	//Required Properties - Also includes timezone, startDate, endDate, title, stationName, stationId and qualifierMetadata
 	private String firstStatDerivedLabel;
-	private String secondStatDerivedLabel;
-	private String thirdStatDerivedLabel;
-	private String fourthStatDerivedLabel;
-	private String firstReferenceTimeSeriesLabel;
-	private String secondReferenceTimeSeriesLabel;
-	private String thirdReferenceTimeSeriesLabel;
+	private boolean isInverted;
+	private String primarySeriesLabel;
+
+	//Optional Properties
 	private String comparisonSeriesLabel;
-	private Map<String, QualifierMetadata> qualifierMetadata;
-//TODO???	private Map<String, GradeMetadata> gradeMetadata;
-	private String stationName;
-	private String stationId;
+	private boolean excludeDiscrete;
 	private boolean excludeZeroNegative;
 	private boolean excludeMinMax;
-	private boolean excludeDiscrete;
-	private boolean isInverted;
+	private String firstReferenceTimeSeriesLabel;
+	private String fourthStatDerivedLabel;
+	private String secondReferenceTimeSeriesLabel;
+	private String secondStatDerivedLabel;
+	private String thirdReferenceTimeSeriesLabel;
+	private String thirdStatDerivedLabel;
 
-	public String getRequestingUser() {
-		return requestingUser;
-	}
-	public void setRequestingUser(String requestingUser) {
-		this.requestingUser = requestingUser;
-	}
-	public String getTimezone() {
-		return timezone;
-	}
-	public void setTimezone(String timezone) {
-		this.timezone = timezone;
-	}
-	public Instant getStartDate() {
-		return startDate;
-	}
-	public void setStartDate(Instant startDate) {
-		this.startDate = startDate;
-	}
-	public Instant getEndDate() {
-		return endDate;
-	}
-	public void setEndDate(Instant endDate) {
-		this.endDate = endDate;
-	}
-	public String getTitle() {
-		return title;
-	}
-	public void setTitle(String title) {
-		this.title = title;
-	}
 	public String getPrimarySeriesLabel() {
 		return primarySeriesLabel;
 	}
 	public void setPrimarySeriesLabel(String primarySeriesLabel) {
 		this.primarySeriesLabel = primarySeriesLabel;
-	}
-	public String getFirstStatDerived() {
-		return firstStatDerived;
-	}
-	public void setFirstStatDerived(String firstStatDerived) {
-		this.firstStatDerived = firstStatDerived;
 	}
 	public String getFirstStatDerivedLabel() {
 		return firstStatDerivedLabel;
@@ -120,24 +72,6 @@ public class DvHydroMetadata {
 	}
 	public void setComparisonSeriesLabel(String comparisonSeriesLabel) {
 		this.comparisonSeriesLabel = comparisonSeriesLabel;
-	}
-	public Map<String, QualifierMetadata> getQualifierMetadata() {
-		return qualifierMetadata;
-	}
-	public void setQualifierMetadata(Map<String, QualifierMetadata> qualifierMetadata) {
-		this.qualifierMetadata = qualifierMetadata;
-	}
-	public String getStationName() {
-		return stationName;
-	}
-	public void setStationName(String stationName) {
-		this.stationName = stationName;
-	}
-	public String getStationId() {
-		return stationId;
-	}
-	public void setStationId(String stationId) {
-		this.stationId = stationId;
 	}
 	public boolean getExcludeZeroNegative() {
 		return excludeZeroNegative;

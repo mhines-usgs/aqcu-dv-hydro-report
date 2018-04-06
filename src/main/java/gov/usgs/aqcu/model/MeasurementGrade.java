@@ -1,6 +1,8 @@
 package gov.usgs.aqcu.model;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.MeasurementGradeType;
 
@@ -9,18 +11,27 @@ import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.Meas
  */
 public enum MeasurementGrade {
 
-	EXCELLENT(new BigDecimal("0.0200")),
+	EXCELLENT(MeasurementGradeType.Excellent, new BigDecimal("0.0200")),
 
-	GOOD(new BigDecimal("0.0500")),
+	GOOD(MeasurementGradeType.Good, new BigDecimal("0.0500")),
 
-	FAIR(new BigDecimal("0.0800")),
+	FAIR(MeasurementGradeType.Fair, new BigDecimal("0.0800")),
 
-	POOR(new BigDecimal("0.100"));
+	POOR(MeasurementGradeType.Poor, new BigDecimal("0.100"));
 
 	private final BigDecimal percentageOfError;
+	private final MeasurementGradeType measurementGradeType;
 
-	private MeasurementGrade(BigDecimal inPercentageOfError) {
-		percentageOfError = inPercentageOfError;
+	private static Map<MeasurementGradeType, MeasurementGrade> measurementGradeMap = new HashMap<>();
+
+	static {
+		for (MeasurementGrade measurementGrade : MeasurementGrade.values()) {
+			measurementGradeMap.put(measurementGrade.measurementGradeType, measurementGrade);
+		}
+}
+	private MeasurementGrade(MeasurementGradeType measurementGradeType, BigDecimal percentageOfError) {
+		this.measurementGradeType = measurementGradeType;
+		this.percentageOfError = percentageOfError;
 	}
 
 	public BigDecimal getPercentageOfError() {
@@ -28,23 +39,16 @@ public enum MeasurementGrade {
 	}
 
 	/**
-	 * this is a safe operation that will catch the runtime exception if not
-	 * valid
-	 *
-	 * @param name The name of the measurement grade
-	 * @see MeasurementGradeType
-	 * @return null if not valid otherwise the correct enum for the string
+	 * @param measurementGradeType The measurementGradeType
+	 * @return null if not valid otherwise the correct enum for the measurementGradeType
 	 * value.
 	 */
-	public static MeasurementGrade valueFrom(String name) {
+	public static MeasurementGrade fromMeasurementGradeType(MeasurementGradeType measurementGradeType) {
 		MeasurementGrade ret = null;
-		try {
-			ret = valueOf(name.toUpperCase());
-		} catch (IllegalArgumentException iae) {
-			//not a valid measurementGrade
-		}
-		if (ret == null) {
-			ret = POOR; //default missing or other grades to poor
+		if (measurementGradeMap.containsKey(measurementGradeType)) {
+			ret = measurementGradeMap.get(measurementGradeType);
+		} else {
+			ret = POOR; //default missing or other grades (Unknown, Unspecified) to poor
 		}
 		return ret;
 	}

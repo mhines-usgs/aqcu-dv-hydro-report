@@ -16,6 +16,8 @@ import static org.mockito.Mockito.verify;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -25,8 +27,6 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -42,90 +42,120 @@ import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.Qual
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.QualifierMetadata;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.QuantityWithDisplay;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.StatisticalDateTimeOffset;
+import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.StatisticalTimeRange;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDataServiceResponse;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDescription;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesPoint;
+import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.FieldVisitDescription;
 
-import gov.usgs.aqcu.model.AqcuFieldVisit;
-import gov.usgs.aqcu.model.AqcuFieldVisitMeasurement;
-import gov.usgs.aqcu.model.AqcuPoint;
-import gov.usgs.aqcu.model.DvHydroCorrectedData;
-import gov.usgs.aqcu.model.DvHydroMetadata;
+import gov.usgs.aqcu.ObjectCompare;
+import gov.usgs.aqcu.model.DvHydrographPoint;
+import gov.usgs.aqcu.model.DvHydrographReportMetadata;
+import gov.usgs.aqcu.model.FieldVisitMeasurement;
 import gov.usgs.aqcu.model.MeasurementGrade;
-import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
+import gov.usgs.aqcu.model.TimeSeriesCorrectedData;
+import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 import gov.usgs.aqcu.retrieval.FieldVisitDataService;
 import gov.usgs.aqcu.retrieval.FieldVisitDescriptionService;
 import gov.usgs.aqcu.retrieval.LocationDescriptionService;
+import gov.usgs.aqcu.retrieval.ParameterListService;
 import gov.usgs.aqcu.retrieval.QualifierLookupService;
-import gov.usgs.aqcu.retrieval.QualifierLookupServiceTest;
 import gov.usgs.aqcu.retrieval.TimeSeriesDataCorrectedService;
 import gov.usgs.aqcu.retrieval.TimeSeriesDescriptionService;
 
 @RunWith(SpringRunner.class)
-public class DvHydroReportBuilderServiceTest {
+public class ReportBuilderServiceTest {
 	public static final Instant REPORT_END_INSTANT = Instant.parse("2018-03-17T23:59:59.999999999Z");
 	public static final Instant REPORT_START_INSTANT = Instant.parse("2018-03-16T00:00:00.00Z");
 	public static final LocalDate REPORT_END_DATE = LocalDate.of(2018, 03, 17);
 	public static final LocalDate REPORT_START_DATE = LocalDate.of(2018, 03, 16);
+	public static final QualifierMetadata QUALIFIER_METADATA_A = new QualifierMetadata().setIdentifier("a");
+	public static final QualifierMetadata QUALIFIER_METADATA_B = new QualifierMetadata().setIdentifier("b");
+	public static final QualifierMetadata QUALIFIER_METADATA_C = new QualifierMetadata().setIdentifier("c");
+	public static final QualifierMetadata QUALIFIER_METADATA_D = new QualifierMetadata().setIdentifier("d");
 
 	@MockBean
-	private TimeSeriesDataCorrectedService timeSeriesDataCorrectedService;
+	private DataGapListBuilderServiceII dataGapListBuilderService;
 	@MockBean
-	private TimeSeriesDescriptionService timeSeriesDescriptionListService;
+	private FieldVisitDataService fieldVisitDataService;
 	@MockBean
-	private LocationDescriptionService locationDescriptionListService;
+	private FieldVisitDescriptionService fieldVisitDescriptionService; 
+	@MockBean
+	private LocationDescriptionService locationDescriptionService;
+	@MockBean
+	private ParameterListService parameterListService;
 	@MockBean
 	private QualifierLookupService qualifierLookupService;
 	@MockBean
-	private FieldVisitDescriptionService fieldVisitDescriptionListService; 
+	private TimeSeriesDataCorrectedService timeSeriesDataCorrectedService;
 	@MockBean
-	private FieldVisitDataService fieldVisitDataService;
+	private TimeSeriesDescriptionService timeSeriesDescriptionService;
 
-	private DvHydroReportBuilderService service;
+	private ReportBuilderService service;
 	private Map<String, QualifierMetadata> metadataMap;
-	private Instant now;
+	private Instant nowInstant;
+	private LocalDate nowLocalDate;
 
 	@Before
 	@SuppressWarnings("unchecked")
 	public void setup() {
-		service = new DvHydroReportBuilderService(timeSeriesDataCorrectedService,
-				timeSeriesDescriptionListService,
-				locationDescriptionListService,
+		service = new ReportBuilderService(dataGapListBuilderService,
+				fieldVisitDataService,
+				fieldVisitDescriptionService,
+				locationDescriptionService,
+				parameterListService,
 				qualifierLookupService,
-				fieldVisitDescriptionListService,
-				fieldVisitDataService);
+				timeSeriesDataCorrectedService,
+				timeSeriesDescriptionService);
 		metadataMap = buildQualifierMetadata();
-		now = Instant.now();
-		given(locationDescriptionListService.getByLocationIdentifier(anyString())).willReturn(new LocationDescription().setIdentifier("0010010000").setName("monitoringLocation"));
+		nowInstant = Instant.now();
+		nowLocalDate = LocalDate.now();
+		given(locationDescriptionService.getByLocationIdentifier(anyString())).willReturn(new LocationDescription().setIdentifier("0010010000").setName("monitoringLocation"));
 		given(qualifierLookupService.getByQualifierList(anyList())).willReturn(metadataMap);
+	}
+
+	@Test
+	public void getZoneOffsetErrorTest() {
+		//TODO
+	}
+
+	@Test
+	public void getTimezoneMinusTest() {
+		assertEquals("Etc/GMT+4", service.getTimezone(Double.parseDouble("-4")));
+		assertEquals("Etc/GMT+0", service.getTimezone(Double.parseDouble("0")));
+	}
+
+	@Test
+	public void getTimezonePlusTest() {
+		assertEquals("Etc/GMT-4", service.getTimezone(Double.parseDouble("4")));
 	}
 
 	@Test
 	@SuppressWarnings("serial")
 	public void createDvHydroMetadataTest() {
 		TimeSeriesDataServiceResponse primarySeriesDataResponse = new TimeSeriesDataServiceResponse().setQualifiers(new ArrayList<Qualifier>() {});
-		DvHydroMetadata actual = service.createDvHydroMetadata(buildRequestParameters(), buildTimeSeriesDescriptions(), primarySeriesDataResponse, "testUser");
+		DvHydrographReportMetadata actual = service.createDvHydroMetadata(buildRequestParameters(), buildTimeSeriesDescriptions(), primarySeriesDataResponse, "testUser");
 
-//		assertThat(actual, samePropertyValuesAs(buildExpectedDvHydroMetadata()));
+		assertThat(actual, samePropertyValuesAs(buildExpectedDvHydroMetadata()));
 	}
 
 	@Test
 	public void buildFieldVisitMeasurements_nullTest() {
-		given(fieldVisitDescriptionListService.getDescriptions(anyString(), any(DvHydroRequestParameters.class))).willReturn(null);
-		List<AqcuFieldVisitMeasurement> actual = service.buildFieldVisitMeasurements(null, null);
+		given(fieldVisitDescriptionService.getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class))).willReturn(null);
+		List<FieldVisitMeasurement> actual = service.buildFieldVisitMeasurements(null, null, null);
 		assertTrue(actual.isEmpty());
 	}
 
 	@Test
 	public void buildFieldVisitMeasurements_loopTest() {
-		ArrayList<AqcuFieldVisit> visits = new ArrayList<AqcuFieldVisit>();
-		AqcuFieldVisit visitA = new AqcuFieldVisit();
+		List<FieldVisitDescription> visits = new ArrayList<FieldVisitDescription>();
+		FieldVisitDescription visitA = new FieldVisitDescription();
 		visitA.setIdentifier("a");
 		visits.add(visitA);
-		AqcuFieldVisit visitB = new AqcuFieldVisit();
+		FieldVisitDescription visitB = new FieldVisitDescription();
 		visitA.setIdentifier("b");
 		visits.add(visitB);
-		given(fieldVisitDescriptionListService.getDescriptions(anyString(), any(DvHydroRequestParameters.class))).willReturn(visits);
+		given(fieldVisitDescriptionService.getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class))).willReturn(visits);
 		ArrayList<DischargeActivity> activities = new ArrayList<>();
 		activities.add(new DischargeActivity().setDischargeSummary(new DischargeSummary()
 				.setMeasurementGrade(MeasurementGradeType.Good)
@@ -137,7 +167,7 @@ public class DvHydroReportBuilderServiceTest {
 				.setDischarge((QuantityWithDisplay) new QuantityWithDisplay().setUnit("dischargeUnits").setDisplay("20.0090").setNumeric(Double.valueOf("20.0090")))));
 		given(fieldVisitDataService.get(anyString())).willReturn(new FieldVisitDataServiceResponse()
 				.setDischargeActivities(activities));
-		List<AqcuFieldVisitMeasurement> actual = service.buildFieldVisitMeasurements(null, null);
+		List<FieldVisitMeasurement> actual = service.buildFieldVisitMeasurements(null, null, null);
 		assertEquals(4, actual.size());
 		verify(fieldVisitDataService, times(2)).get(anyString());
 	}
@@ -145,8 +175,8 @@ public class DvHydroReportBuilderServiceTest {
 	@Test
 	public void createFieldVisitMeasurement_noDischargeActivitiesTest() {
 		given(fieldVisitDataService.get(anyString())).willReturn(new FieldVisitDataServiceResponse());
-		AqcuFieldVisit visit = new AqcuFieldVisit();
-		List<AqcuFieldVisitMeasurement> actual = service.createFieldVisitMeasurement(visit);
+		FieldVisitDescription visit = new FieldVisitDescription();
+		List<FieldVisitMeasurement> actual = service.createFieldVisitMeasurements(visit);
 		assertTrue(actual.isEmpty());
 	}
 
@@ -157,8 +187,8 @@ public class DvHydroReportBuilderServiceTest {
 		activities.add(new DischargeActivity());
 		given(fieldVisitDataService.get(anyString())).willReturn(new FieldVisitDataServiceResponse()
 				.setDischargeActivities(activities));
-		AqcuFieldVisit visit = new AqcuFieldVisit();
-		List<AqcuFieldVisitMeasurement> actual = service.createFieldVisitMeasurement(visit);
+		FieldVisitDescription visit = new FieldVisitDescription();
+		List<FieldVisitMeasurement> actual = service.createFieldVisitMeasurements(visit);
 		assertTrue(actual.isEmpty());
 	}
 
@@ -169,8 +199,8 @@ public class DvHydroReportBuilderServiceTest {
 		activities.add(new DischargeActivity().setDischargeSummary(new DischargeSummary()));
 		given(fieldVisitDataService.get(anyString())).willReturn(new FieldVisitDataServiceResponse()
 				.setDischargeActivities(activities));
-		AqcuFieldVisit visit = new AqcuFieldVisit();
-		List<AqcuFieldVisitMeasurement> actual = service.createFieldVisitMeasurement(visit);
+		FieldVisitDescription visit = new FieldVisitDescription();
+		List<FieldVisitMeasurement> actual = service.createFieldVisitMeasurements(visit);
 		assertTrue(actual.isEmpty());
 	}
 
@@ -187,8 +217,8 @@ public class DvHydroReportBuilderServiceTest {
 				.setDischarge((QuantityWithDisplay) new QuantityWithDisplay().setUnit("dischargeUnits").setDisplay("20.0090").setNumeric(Double.valueOf("20.0090")))));
 		given(fieldVisitDataService.get(anyString())).willReturn(new FieldVisitDataServiceResponse()
 				.setDischargeActivities(activities));
-		AqcuFieldVisit visit = new AqcuFieldVisit();
-		List<AqcuFieldVisitMeasurement> actual = service.createFieldVisitMeasurement(visit);
+		FieldVisitDescription visit = new FieldVisitDescription();
+		List<FieldVisitMeasurement> actual = service.createFieldVisitMeasurements(visit);
 		assertEquals(2, actual.size());
 		//Nice To Have - compare the two objects to expected values.
 	}
@@ -215,28 +245,25 @@ public class DvHydroReportBuilderServiceTest {
 
 	@Test
 	public void getFieldVisitMeasurementTest() {
-		AqcuFieldVisit visit = new AqcuFieldVisit();
-		visit.setIdentifier("fieldVisitIdentifier");
-		AqcuFieldVisitMeasurement actual = service.getFieldVisitMeasurement(visit, "controlCondition",
+		FieldVisitMeasurement actual = service.getFieldVisitMeasurement(
 				new DischargeSummary()
 					.setMeasurementGrade(MeasurementGradeType.Good)
 					.setMeasurementId("20.0090")
 					.setDischarge((QuantityWithDisplay) new QuantityWithDisplay().setUnit("dischargeUnits").setDisplay("20.0090").setNumeric(Double.valueOf("20.0090")))
 					.setMeanGageHeight((QuantityWithDisplay) new QuantityWithDisplay().setUnit("meanGageHeightUnits").setDisplay("2.0090").setNumeric(Double.valueOf("2.0090")))
-					.setMeasurementStartTime(now)
+					.setMeasurementStartTime(nowInstant)
 					);
-		AqcuFieldVisitMeasurement expected = new AqcuFieldVisitMeasurement("20.0090", "controlCondition", new BigDecimal("20.0090"), "dischargeUnits", "meanGageHeightUnits",
-				new BigDecimal("21.00945000"), new BigDecimal("19.00855000"), MeasurementGrade.GOOD, now, "fieldVisitIdentifier");
-		expected.setMeanGageHeight(new BigDecimal("2.0090"));
+		FieldVisitMeasurement expected = new FieldVisitMeasurement("20.0090", new BigDecimal("20.0090"),
+				new BigDecimal("21.00945000"), new BigDecimal("19.00855000"), nowInstant);
 		assertThat(actual, samePropertyValuesAs(expected));
 	}
 
 	@Test
 	public void calculateErrorTest() {
 		Instant now = Instant.now();
-		AqcuFieldVisitMeasurement expected = new AqcuFieldVisitMeasurement("20.0090", "controlCondition", new BigDecimal("20.0090"), "dischargeUnits", "meanGageHeightUnits",
-				new BigDecimal("21.00945000"), new BigDecimal("19.00855000"), MeasurementGrade.GOOD, now, "fieldVisitIdentifier");
-		AqcuFieldVisitMeasurement actual = service.calculateError(MeasurementGrade.GOOD, "20.0090", "controlCondition", new BigDecimal("20.0090"), "dischargeUnits", "meanGageHeightUnits", now, "fieldVisitIdentifier");
+		FieldVisitMeasurement expected = new FieldVisitMeasurement("20.0090", new BigDecimal("20.0090"),
+				new BigDecimal("21.00945000"), new BigDecimal("19.00855000"), now);
+		FieldVisitMeasurement actual = service.calculateError(MeasurementGrade.GOOD, "20.0090", new BigDecimal("20.0090"), now);
 
 		assertThat(actual, samePropertyValuesAs(expected));
 	}
@@ -261,7 +288,7 @@ public class DvHydroReportBuilderServiceTest {
 	@Test
 	public void getRoundedValue_GapDisplayTest() {
 		DoubleWithDisplay dwd = new DoubleWithDisplay()
-				.setDisplay(DvHydroReportBuilderService.GAP_MARKER_POINT_VALUE)
+				.setDisplay(ReportBuilderService.GAP_MARKER_POINT_VALUE)
 				.setNumeric(Double.valueOf("123.456"));
 		assertEquals(new BigDecimal("123.456"), service.getRoundedValue(dwd));
 	}
@@ -277,16 +304,21 @@ public class DvHydroReportBuilderServiceTest {
 	@Test
 	@SuppressWarnings("unchecked")
 	public void createDvHydroPointsTest() {
-		AqcuPoint expected1 = new AqcuPoint();
-		expected1.setTime(now.minusSeconds(3));
+		//TODO more testing of start/end boundaries with 24 & 00
+		DvHydrographPoint expected1 = new DvHydrographPoint();
+		expected1.setTime(nowInstant.minusSeconds(3));
 		expected1.setValue(new BigDecimal("654.321"));
-		AqcuPoint expected2 = new AqcuPoint();
-		expected2.setTime(now.minusSeconds(2));
+		DvHydrographPoint expected2 = new DvHydrographPoint();
+		expected2.setTime(nowInstant.minusSeconds(2));
 		expected2.setValue(new BigDecimal("321.987"));
-		AqcuPoint expected3 = new AqcuPoint();
-		expected3.setTime(now);
+		DvHydrographPoint expected3 = new DvHydrographPoint();
+		expected3.setTime(nowInstant);
 		expected3.setValue(new BigDecimal("987.654"));
-		List<AqcuPoint> actual = service.createDvHydroPoints(getTimeSeriesPoints());
+		DvHydrographRequestParameters requestParameters = new DvHydrographRequestParameters();
+		requestParameters.setStartDate(nowLocalDate);
+		requestParameters.setEndDate(nowLocalDate);
+		List<DvHydrographPoint> actual = service.createDvHydroPoints(getTimeSeriesPoints(), requestParameters,
+				true, ZoneOffset.UTC);
 		assertThat(actual, containsInAnyOrder(samePropertyValuesAs(expected1),
 				samePropertyValuesAs(expected2),
 				samePropertyValuesAs(expected3)));
@@ -295,28 +327,39 @@ public class DvHydroReportBuilderServiceTest {
 	@Test
 	public void createDvHydroCorrectedDataTest() {
 		TimeSeriesDataServiceResponse tsd = new TimeSeriesDataServiceResponse()
+				.setTimeRange(new StatisticalTimeRange()
+						.setStartTime(new StatisticalDateTimeOffset().setDateTimeOffset(nowInstant).setRepresentsEndOfTimePeriod(true))
+						.setEndTime(new StatisticalDateTimeOffset().setDateTimeOffset(nowInstant).setRepresentsEndOfTimePeriod(true))
+						)
 				.setUnit("myUnit")
 				.setParameter("myParameter")
-				.setPoints(getTimeSeriesPoints());
-		AqcuPoint expected1 = new AqcuPoint();
-		expected1.setTime(now.minusSeconds(3));
+				.setPoints(getTimeSeriesPoints())
+				.setQualifiers(new ArrayList<Qualifier>()); //TODO add qualifiers
+		DvHydrographPoint expected1 = new DvHydrographPoint();
+		expected1.setTime(nowInstant.minusSeconds(3));
 		expected1.setValue(new BigDecimal("654.321"));
-		AqcuPoint expected2 = new AqcuPoint();
-		expected2.setTime(now.minusSeconds(2));
+		DvHydrographPoint expected2 = new DvHydrographPoint();
+		expected2.setTime(nowInstant.minusSeconds(2));
 		expected2.setValue(new BigDecimal("321.987"));
-		AqcuPoint expected3 = new AqcuPoint();
-		expected3.setTime(now);
+		DvHydrographPoint expected3 = new DvHydrographPoint();
+		expected3.setTime(nowInstant);
 		expected3.setValue(new BigDecimal("987.654"));
-		DvHydroCorrectedData expected = new DvHydroCorrectedData();
+		TimeSeriesCorrectedData expected = new TimeSeriesCorrectedData();
 		expected.setPoints(Arrays.asList(expected1, expected2, expected3));
 		expected.setType("myParameter");
 		expected.setUnit("myUnit");
-		DvHydroCorrectedData actual = service.createDvHydroCorrectedData(tsd, now, now);
-		assertThat(actual, samePropertyValuesAs(expected));
+		expected.setEndTime(nowLocalDate.minusDays(1));
+		expected.setStartTime(nowLocalDate.minusDays(1));
+		expected.setVolumetricFlow(true);
+		DvHydrographRequestParameters requestParameters = new DvHydrographRequestParameters();
+		requestParameters.setStartDate(nowLocalDate);
+		requestParameters.setEndDate(nowLocalDate);
+		TimeSeriesCorrectedData actual = service.createDvHydroCorrectedData(tsd, requestParameters, true, true, ZoneOffset.UTC);
+		ObjectCompare.assertDaoTestResults(TimeSeriesCorrectedData.class, expected, actual);
 	}
 
-	protected DvHydroRequestParameters buildRequestParameters() {
-		DvHydroRequestParameters requestParameters = new DvHydroRequestParameters();
+	protected DvHydrographRequestParameters buildRequestParameters() {
+		DvHydrographRequestParameters requestParameters = new DvHydrographRequestParameters();
 		requestParameters.setPrimaryTimeseriesIdentifier("a");
 		requestParameters.setFirstStatDerivedIdentifier("b");
 		requestParameters.setSecondStatDerivedIdentifier("c");
@@ -333,7 +376,7 @@ public class DvHydroReportBuilderServiceTest {
 
 	protected Map<String, TimeSeriesDescription> buildTimeSeriesDescriptions() {
 		Map<String, TimeSeriesDescription> descriptions = new HashMap<>();
-		descriptions.put("a", new TimeSeriesDescription().setIdentifier("primaryIdentifier").setUtcOffset(Double.valueOf(4)));
+		descriptions.put("a", new TimeSeriesDescription().setIdentifier("primaryIdentifier").setUtcOffset(Double.valueOf(-4)));
 		descriptions.put("b", new TimeSeriesDescription().setIdentifier("firstStatDerived"));
 		descriptions.put("c", new TimeSeriesDescription().setIdentifier("secondStatDerived"));
 		descriptions.put("d", new TimeSeriesDescription().setIdentifier("thirdStatDerived"));
@@ -345,14 +388,13 @@ public class DvHydroReportBuilderServiceTest {
 		return descriptions;
 	};
 
-	protected DvHydroMetadata buildExpectedDvHydroMetadata() {
-		DvHydroMetadata expected = new DvHydroMetadata();
-		expected.setRequestingUser("testUser");
-		expected.setTimezone("Etc/GMT-4");
+	protected DvHydrographReportMetadata buildExpectedDvHydroMetadata() {
+		DvHydrographReportMetadata expected = new DvHydrographReportMetadata();
+		expected.setPrimarySeriesLabel("primaryIdentifier");
+		expected.setTimezone("Etc/GMT+4");
 		expected.setStartDate(REPORT_START_INSTANT);
 		expected.setEndDate(REPORT_END_INSTANT);
 		expected.setTitle("DV Hydrograph");
-		expected.setPrimarySeriesLabel("primaryIdentifier");
 		expected.setFirstStatDerivedLabel("firstStatDerived");
 		expected.setSecondStatDerivedLabel("secondStatDerived");
 		expected.setThirdStatDerivedLabel("thirdStatDerived");
@@ -369,10 +411,10 @@ public class DvHydroReportBuilderServiceTest {
 
 	protected Map<String, QualifierMetadata> buildQualifierMetadata() {
 		Map<String, QualifierMetadata> metadata = new HashMap<>();
-		metadata.put("a", QualifierLookupServiceTest.QUALIFIER_METADATA_A);
-		metadata.put("b", QualifierLookupServiceTest.QUALIFIER_METADATA_B);
-		metadata.put("c", QualifierLookupServiceTest.QUALIFIER_METADATA_C);
-		metadata.put("d", QualifierLookupServiceTest.QUALIFIER_METADATA_D);
+		metadata.put("a", QUALIFIER_METADATA_A);
+		metadata.put("b", QUALIFIER_METADATA_B);
+		metadata.put("c", QUALIFIER_METADATA_C);
+		metadata.put("d", QUALIFIER_METADATA_D);
 		return metadata;
 	}
 
@@ -383,19 +425,22 @@ public class DvHydroReportBuilderServiceTest {
 						.setDisplay("654.321")
 						.setNumeric(Double.valueOf("123.456")))
 				.setTimestamp(new StatisticalDateTimeOffset()
-						.setDateTimeOffset(now.minusSeconds(3))));
+						.setDateTimeOffset(nowInstant.minusSeconds(3))
+						.setRepresentsEndOfTimePeriod(false)));
 		timeSeriesPoints.add(new TimeSeriesPoint()
 				.setValue(new DoubleWithDisplay()
 						.setDisplay("321.987")
 						.setNumeric(Double.valueOf("789.123")))
 				.setTimestamp(new StatisticalDateTimeOffset()
-						.setDateTimeOffset(now.minusSeconds(2))));
+						.setDateTimeOffset(nowInstant.minusSeconds(2))
+						.setRepresentsEndOfTimePeriod(false)));
 		timeSeriesPoints.add(new TimeSeriesPoint()
 				.setValue(new DoubleWithDisplay()
 						.setDisplay("987.654")
 						.setNumeric(Double.valueOf("456.789")))
 				.setTimestamp(new StatisticalDateTimeOffset()
-						.setDateTimeOffset(now)));
+						.setDateTimeOffset(nowInstant)
+						.setRepresentsEndOfTimePeriod(false)));
 		return timeSeriesPoints;
 	}
 

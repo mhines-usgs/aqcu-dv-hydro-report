@@ -19,7 +19,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
+import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 import gov.usgs.aqcu.parameter.RequestParameters;
 
 public class DvHydroRequestParametersValidationTest {
@@ -27,7 +27,7 @@ public class DvHydroRequestParametersValidationTest {
 	protected static ValidatorFactory validatorFactory;
 	protected static Validator validator;
 
-	protected DvHydroRequestParameters params;
+	protected DvHydrographRequestParameters params;
 
 	@BeforeClass
 	public static void createValidator() {
@@ -37,7 +37,7 @@ public class DvHydroRequestParametersValidationTest {
 
 	@Before
 	public void setup() {
-		params = new DvHydroRequestParameters();
+		params = new DvHydrographRequestParameters();
 		params.setPrimaryTimeseriesIdentifier("pts");
 		params.setWaterYear(2018);
 	}

@@ -23,7 +23,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDescription;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDescriptionListByUniqueIdServiceResponse;
 
-import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
+import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 import net.servicestack.client.IReturn;
 
 @RunWith(SpringRunner.class)
@@ -33,7 +33,7 @@ public class TimeSeriesDescriptionServiceTest {
 	private AquariusRetrievalService aquariusService;
 
 	private TimeSeriesDescriptionService service;
-	private DvHydroRequestParameters parameters;
+	private DvHydrographRequestParameters parameters;
 
 	private TimeSeriesDescription timeSeriesDescriptionA = new TimeSeriesDescription().setUniqueId("a");
 	private TimeSeriesDescription timeSeriesDescriptionB = new TimeSeriesDescription().setUniqueId("b");
@@ -43,7 +43,7 @@ public class TimeSeriesDescriptionServiceTest {
 	@SuppressWarnings("unchecked")
 	public void setup() throws Exception {
 		service = new TimeSeriesDescriptionService(aquariusService);
-		parameters = new DvHydroRequestParameters();
+		parameters = new DvHydrographRequestParameters();
 		given(aquariusService.executePublishApiRequest(any(IReturn.class))).willReturn(new TimeSeriesDescriptionListByUniqueIdServiceResponse()
 				.setTimeSeriesDescriptions(new ArrayList<TimeSeriesDescription>(Arrays.asList(timeSeriesDescriptionA, timeSeriesDescriptionB, timeSeriesDescriptionC))));
 	}

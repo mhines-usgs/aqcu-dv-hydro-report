@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Matchers.any;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,9 +21,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.FieldVisitDescription;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.FieldVisitDescriptionListServiceResponse;
 
-import gov.usgs.aqcu.builder.DvHydroReportBuilderServiceTest;
-import gov.usgs.aqcu.model.AqcuFieldVisit;
-import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
+import gov.usgs.aqcu.builder.ReportBuilderServiceTest;
+import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 import net.servicestack.client.IReturn;
 
 @RunWith(SpringRunner.class)
@@ -32,7 +32,7 @@ public class FieldVisitDescriptionServiceTest {
 	private AquariusRetrievalService aquariusService;
 
 	private FieldVisitDescriptionService service;
-	private DvHydroRequestParameters parameters;
+	private DvHydrographRequestParameters parameters;
 	private Instant now = Instant.now();
 
 	private FieldVisitDescription descriptionA = new FieldVisitDescription()
@@ -48,15 +48,11 @@ public class FieldVisitDescriptionServiceTest {
 	private FieldVisitDescription descriptionB = new FieldVisitDescription().setIdentifier("b");
 	private FieldVisitDescription descriptionC = new FieldVisitDescription().setIdentifier("c");
 
-	private AqcuFieldVisit visitA = new AqcuFieldVisit("00100100", now.minusSeconds(1000), now.minusSeconds(10), "a", true, now, "on", "this is cool", "Cloudy with a chance of meatballs.");
-	private AqcuFieldVisit visitB = new AqcuFieldVisit(null, null, null, "b", null, null, null, null, null);
-	private AqcuFieldVisit visitC = new AqcuFieldVisit(null, null, null, "c", null, null, null, null, null);
-
 	@Before
 	@SuppressWarnings("unchecked")
 	public void setup() throws Exception {
 		service = new FieldVisitDescriptionService(aquariusService);
-		parameters = new DvHydroRequestParameters();
+		parameters = new DvHydrographRequestParameters();
 		given(aquariusService.executePublishApiRequest(any(IReturn.class))).willReturn(new FieldVisitDescriptionListServiceResponse()
 				.setFieldVisitDescriptions(new ArrayList<FieldVisitDescription>(Arrays.asList(descriptionA, descriptionB, descriptionC))));
 	}
@@ -69,19 +65,12 @@ public class FieldVisitDescriptionServiceTest {
 	}
 
 	@Test
-	public void convertDescriptionsTest() {
-		List<AqcuFieldVisit> actual = service.convertDescriptions(new ArrayList<FieldVisitDescription>(Arrays.asList(descriptionA, descriptionB, descriptionC)));
-		assertEquals(3, actual.size());
-		assertThat(actual, containsInAnyOrder(visitA, visitB, visitC));
-	}
-
-	@Test
 	public void getTimeSeriesDescriptions_happyTest() {
-		parameters.setStartDate(DvHydroReportBuilderServiceTest.REPORT_START_DATE);
-		parameters.setEndDate(DvHydroReportBuilderServiceTest.REPORT_END_DATE);
-		List<AqcuFieldVisit> actual = service.getDescriptions("station", parameters);
+		parameters.setStartDate(ReportBuilderServiceTest.REPORT_START_DATE);
+		parameters.setEndDate(ReportBuilderServiceTest.REPORT_END_DATE);
+		List<FieldVisitDescription> actual = service.getDescriptions("station", ZoneOffset.UTC, parameters);
 		assertEquals(3, actual.size());
-		assertThat(actual, containsInAnyOrder(visitA, visitB, visitC));
+		assertThat(actual, containsInAnyOrder(descriptionA, descriptionB, descriptionC));
 	}
 
 }

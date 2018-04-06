@@ -10,15 +10,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDescription;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDescriptionListByUniqueIdServiceRequest;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDescriptionListByUniqueIdServiceResponse;
 
-import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
+import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 
-@Component
+@Repository
 public class TimeSeriesDescriptionService {
 	private static final Logger LOG = LoggerFactory.getLogger(TimeSeriesDescriptionService.class);
 
@@ -29,7 +29,7 @@ public class TimeSeriesDescriptionService {
 		this.aquariusRetrievalService = aquariusRetrievalService;
 	}
 
-	public Map<String, TimeSeriesDescription> getTimeSeriesDescriptions(DvHydroRequestParameters requestParameters) {
+	public Map<String, TimeSeriesDescription> getTimeSeriesDescriptions(DvHydrographRequestParameters requestParameters) {
 		ArrayList<String> uniqueTimeseriesIdentifiers = buildUniqueIdentifierList(requestParameters);
 		Map<String, TimeSeriesDescription> timeSeriesDescriptions = new HashMap<>();
 
@@ -45,7 +45,7 @@ public class TimeSeriesDescriptionService {
 		return timeSeriesDescriptions;
 	}
 
-	protected ArrayList<String> buildUniqueIdentifierList(DvHydroRequestParameters requestParameters) {
+	protected ArrayList<String> buildUniqueIdentifierList(DvHydrographRequestParameters requestParameters) {
 		ArrayList<String> timeseriesIdentifiers = new ArrayList<>();
 
 		if (StringUtils.isNotBlank(requestParameters.getPrimaryTimeseriesIdentifier())) {

@@ -6,9 +6,10 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Matchers.any;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -19,8 +20,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.Qualifier;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDataServiceResponse;
 
-import gov.usgs.aqcu.builder.DvHydroReportBuilderServiceTest;
-import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
+import gov.usgs.aqcu.builder.ReportBuilderServiceTest;
+import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 import net.servicestack.client.IReturn;
 
 @RunWith(SpringRunner.class)
@@ -30,17 +31,19 @@ public class TimeSeriesDataCorrectedServiceTest {
 	private AquariusRetrievalService aquariusService;
 
 	private TimeSeriesDataCorrectedService service;
-	private DvHydroRequestParameters parameters;
+	private DvHydrographRequestParameters parameters;
 
 	private Qualifier qualifierA = new Qualifier().setIdentifier("a");
 	private Qualifier qualifierB = new Qualifier().setIdentifier("b");
 	private Qualifier qualifierC = new Qualifier().setIdentifier("c");
 
+	private int secondsInDay = 60 * 60 * 24;
+
 	@Before
 	@SuppressWarnings("unchecked")
 	public void setup() throws Exception {
 		service = new TimeSeriesDataCorrectedService(aquariusService);
-		parameters = new DvHydroRequestParameters();
+		parameters = new DvHydrographRequestParameters();
 		given(aquariusService.executePublishApiRequest(any(IReturn.class))).willReturn(new TimeSeriesDataServiceResponse()
 				.setQualifiers(new ArrayList<Qualifier>(Arrays.asList(qualifierA, qualifierB, qualifierC))));
 	}
@@ -54,20 +57,18 @@ public class TimeSeriesDataCorrectedServiceTest {
 
 	@Test
 	public void get_Test() throws Exception {
-		parameters.setStartDate(DvHydroReportBuilderServiceTest.REPORT_START_DATE);
-		parameters.setEndDate(DvHydroReportBuilderServiceTest.REPORT_END_DATE);
-		TimeSeriesDataServiceResponse actual = service.get(parameters.getPrimaryTimeseriesIdentifier(), parameters);
+		parameters.setStartDate(ReportBuilderServiceTest.REPORT_START_DATE);
+		parameters.setEndDate(ReportBuilderServiceTest.REPORT_END_DATE);
+		TimeSeriesDataServiceResponse actual = service.get(parameters.getPrimaryTimeseriesIdentifier(), parameters, true, ZoneOffset.UTC);
 		assertEquals(3, actual.getQualifiers().size());
 		assertThat(actual.getQualifiers(), containsInAnyOrder(qualifierA, qualifierB, qualifierC));
 	}
 
 	@Test
-	public void getTimeSeriesDescriptions_happyTest() {
-		parameters.setStartDate(DvHydroReportBuilderServiceTest.REPORT_START_DATE);
-		parameters.setEndDate(DvHydroReportBuilderServiceTest.REPORT_END_DATE);
-		List<Qualifier> actual = service.getQualifiers(parameters);
-		assertEquals(3, actual.size());
-		assertThat(actual, containsInAnyOrder(qualifierA, qualifierB, qualifierC));
+	public void adjustIfDVTest () {
+		Instant now = Instant.now();
+		Instant tomorrow = now.plusSeconds(secondsInDay);
+		assertEquals(now, service.adjustIfDv(now, false));
+		assertEquals(tomorrow, service.adjustIfDv(now, true));
 	}
-
 }

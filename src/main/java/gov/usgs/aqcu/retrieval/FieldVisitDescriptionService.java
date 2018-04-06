@@ -1,23 +1,22 @@
 package gov.usgs.aqcu.retrieval;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.FieldVisitDescription;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.FieldVisitDescriptionListServiceRequest;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.FieldVisitDescriptionListServiceResponse;
 
-import gov.usgs.aqcu.model.AqcuFieldVisit;
-import gov.usgs.aqcu.parameter.DvHydroRequestParameters;
+import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 
-@Component
+@Repository
 public class FieldVisitDescriptionService {
 	private static final Logger LOG = LoggerFactory.getLogger(FieldVisitDescriptionService.class);
 
@@ -28,19 +27,19 @@ public class FieldVisitDescriptionService {
 		this.aquariusRetrievalService = aquariusRetrievalService;
 	}
 
-	public List<AqcuFieldVisit> getDescriptions(String stationId, DvHydroRequestParameters requestParameters) {
+	public List<FieldVisitDescription> getDescriptions(String stationId, ZoneOffset zoneOffset, DvHydrographRequestParameters requestParameters) {
 		List<FieldVisitDescription> descriptions = new ArrayList<>();
 		try {
 			FieldVisitDescriptionListServiceResponse fieldVisitResponse = get(stationId,
-					requestParameters.getStartInstant(),
-					requestParameters.getEndInstant());
+					requestParameters.getStartInstant(zoneOffset),
+					requestParameters.getEndInstant(zoneOffset));
 			descriptions = fieldVisitResponse.getFieldVisitDescriptions();
 		} catch (Exception e) {
 			String msg = "An unexpected error occurred while attempting to fetch FieldVisitDescriptionListServiceRequest from Aquarius: ";
 			LOG.error(msg, e);
 			throw new RuntimeException(msg, e);
 		}
-		return convertDescriptions(descriptions);
+		return descriptions;
 	}
 
 	protected FieldVisitDescriptionListServiceResponse get(String stationId, Instant startDate, Instant endDate) throws Exception {
@@ -50,22 +49,6 @@ public class FieldVisitDescriptionService {
 				.setQueryTo(endDate);
 		FieldVisitDescriptionListServiceResponse fieldVisitResponse  = aquariusRetrievalService.executePublishApiRequest(request);
 		return fieldVisitResponse;
-	}
-
-	protected List<AqcuFieldVisit> convertDescriptions(List<FieldVisitDescription> descriptions) {
-		List<AqcuFieldVisit> convertedDescriptions = descriptions.stream()
-				.map(x -> {AqcuFieldVisit rtn = new AqcuFieldVisit(x.getLocationIdentifier(),
-						x.getStartTime(), 
-						x.getEndTime(), 
-						x.getIdentifier(), 
-						x.getIsValid(),
-						x.getLastModified(), 
-						x.getParty(), 
-						x.getRemarks(), 
-						x.getWeather());
-						return rtn;})
-				.collect(Collectors.toList());
-		return convertedDescriptions;
 	}
 
 }
