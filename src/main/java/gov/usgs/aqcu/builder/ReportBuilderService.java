@@ -54,7 +54,7 @@ public class ReportBuilderService {
 	protected static final String GAP_MARKER_POINT_VALUE = "EMPTY";
 	private static final String VOLUMETRIC_FLOW_UNIT_GROUP_VALUE = "Volumetric Flow";
 
-	private DataGapListBuilderServiceII dataGapListBuilderService;
+	private DataGapListBuilderService dataGapListBuilderService;
 	private FieldVisitDataService fieldVisitDataService;
 	private FieldVisitDescriptionService fieldVisitDescriptionService; 
 	private LocationDescriptionService locationDescriptionService;
@@ -70,7 +70,7 @@ public class ReportBuilderService {
 
 	@Autowired
 	public ReportBuilderService(
-			DataGapListBuilderServiceII dataGapListBuilderService,
+			DataGapListBuilderService dataGapListBuilderService,
 			FieldVisitDataService fieldVisitDataService,
 			FieldVisitDescriptionService fieldVisitDescriptionService,
 			LocationDescriptionService locationDescriptionService,
