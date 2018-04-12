@@ -7,11 +7,6 @@ server:
     key-password: ${keystorePassword}
     key-alias: ${keystoreSSLKey:tomcat}
 
-
-aqcu:
-  reports:
-    webservice: ${aqcuReportsWebserviceUrl}
-
 aquarius:
   service:
     endpoint: ${aquariusServiceEndpoint}
