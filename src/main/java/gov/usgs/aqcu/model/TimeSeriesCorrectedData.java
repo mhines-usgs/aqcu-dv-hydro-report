@@ -11,7 +11,7 @@ public class TimeSeriesCorrectedData {
 	//Required Properties
 	private List<Approval> approvals; //not used according to doc, but required per R (level/approvalLevel, description/levelDescription, {dateApplied/dateAppliedUtc}, startTime, endTime)
 	private Temporal endTime;
-	private List<DataGapII> gaps; //not used according to doc, but required per R
+	private List<DataGap> gaps; //not used according to doc, but required per R
 	private List<GapTolerance> gapTolerances; //not used according to doc, but required per R
 	private List<String> grades; //not used according to doc, but required per R
 	private boolean isVolumetricFlow;
@@ -37,10 +37,10 @@ public class TimeSeriesCorrectedData {
 	public void setEndTime(Temporal endTime) {
 		this.endTime = endTime;
 	}
-	public List<DataGapII> getGaps() {
+	public List<DataGap> getGaps() {
 		return gaps;
 	}
-	public void setGaps(List<DataGapII> gaps) {
+	public void setGaps(List<DataGap> gaps) {
 		this.gaps = gaps;
 	}
 	public List<GapTolerance> getGapTolerances() {
