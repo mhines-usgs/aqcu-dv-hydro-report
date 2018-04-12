@@ -1,11 +1,22 @@
 server:
-  port: ${serverPort:443}
+  port: ${serverPort:8443}
   use-forward-headers: true
   ssl:
     key-store: ${keystoreLocation}
     key-store-password: ${keystorePassword}
     key-password: ${keystorePassword}
     key-alias: ${keystoreSSLKey:tomcat}
+
+
+aqcu:
+  reports:
+    webservice: ${aqcuReportsWebserviceUrl}
+
+aquarius:
+  service:
+    endpoint: ${aquariusServiceEndpoint}
+    user: ${aquariusServiceUser}
+    password: ${aquariusServicePassword}
 
 security:
   require-ssl: true
