@@ -18,6 +18,14 @@ aquarius:
     user: ${aquariusServiceUser}
     password: ${aquariusServicePassword}
 
+sims:
+  base:
+    url: ${simsBaseUrl}
+
+waterdata:
+  base:
+    url: ${waterdataBaseUrl}
+
 security:
   require-ssl: true
   basic:
