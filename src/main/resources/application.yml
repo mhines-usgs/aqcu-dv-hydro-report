@@ -21,6 +21,11 @@ javaToR:
     listOfServers: ${javaToRServers}
     IsSecure: ${javaToRIsSecure:true}
 
+nwisRa:
+  ribbon:
+    listOfServers: ${nwisRaServices}
+    IsSecure: ${nwisRaIsSecure:true}
+
 eureka:
   client:
     enabled: false

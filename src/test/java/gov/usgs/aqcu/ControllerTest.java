@@ -26,7 +26,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.util.FileCopyUtils;
 
 import gov.usgs.aqcu.builder.ReportBuilderService;
-import gov.usgs.aqcu.client.JavaToRClient;
+import gov.usgs.aqcu.client.NwisRaClient;
 import gov.usgs.aqcu.model.DvHydrographReport;
 import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 
@@ -42,7 +42,7 @@ public class ControllerTest {
 	private ReportBuilderService service;
 
 	@MockBean
-	private JavaToRClient client;
+	private NwisRaClient client;
 
 	@Test
 	public void getReportHappyPathTest() throws Exception {

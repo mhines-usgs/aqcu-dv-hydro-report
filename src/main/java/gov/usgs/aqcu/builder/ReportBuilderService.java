@@ -3,7 +3,10 @@ package gov.usgs.aqcu.builder;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -15,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.ControlConditionActivity;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.ControlConditionType;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.DischargeSummary;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.DoubleWithDisplay;
@@ -26,19 +30,27 @@ import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.Time
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesDescription;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.TimeSeriesPoint;
 
+import gov.usgs.aqcu.client.NwisRaClient;
 import gov.usgs.aqcu.model.DvHydrographPoint;
 import gov.usgs.aqcu.model.DvHydrographReport;
 import gov.usgs.aqcu.model.DvHydrographReportMetadata;
 import gov.usgs.aqcu.model.FieldVisitMeasurement;
+import gov.usgs.aqcu.model.GroundWaterParameters;
 import gov.usgs.aqcu.model.InstantRange;
 import gov.usgs.aqcu.model.MeasurementGrade;
 import gov.usgs.aqcu.model.MinMaxData;
 import gov.usgs.aqcu.model.MinMaxPoint;
+import gov.usgs.aqcu.model.ParameterRecord;
+import gov.usgs.aqcu.model.ParameterRecords;
+import gov.usgs.aqcu.model.ParameterSpecService;
 import gov.usgs.aqcu.model.TimeSeriesCorrectedData;
+import gov.usgs.aqcu.model.WaterLevelRecord;
+import gov.usgs.aqcu.model.WaterLevelRecords;
 import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 import gov.usgs.aqcu.retrieval.FieldVisitDataService;
 import gov.usgs.aqcu.retrieval.FieldVisitDescriptionService;
 import gov.usgs.aqcu.retrieval.LocationDescriptionService;
+import gov.usgs.aqcu.retrieval.NwisRaService;
 import gov.usgs.aqcu.retrieval.ParameterListService;
 import gov.usgs.aqcu.retrieval.QualifierLookupService;
 import gov.usgs.aqcu.retrieval.TimeSeriesDataCorrectedService;
@@ -50,9 +62,15 @@ import gov.usgs.aqcu.util.BigDecimalSummaryStatistics;
 public class ReportBuilderService {
 	private static final Logger LOG = LoggerFactory.getLogger(ReportBuilderService.class);
 
-	private static final String ESTIMATED_QUALIFIER_VALUE = "ESTIMATED";
 	protected static final String GAP_MARKER_POINT_VALUE = "EMPTY";
+	private static final String ESTIMATED_QUALIFIER_VALUE = "ESTIMATED";
 	private static final String VOLUMETRIC_FLOW_UNIT_GROUP_VALUE = "Volumetric Flow";
+	private static final String DISCHARGE_PARAMETER = "Discharge";
+
+
+
+
+
 
 	private DataGapListBuilderService dataGapListBuilderService;
 	private FieldVisitDataService fieldVisitDataService;
@@ -62,6 +80,7 @@ public class ReportBuilderService {
 	private QualifierLookupService qualifierLookupService;
 	private TimeSeriesDataCorrectedService timeSeriesDataCorrectedService;
 	private TimeSeriesDescriptionService timeSeriesDescriptionService;
+	private NwisRaService nwisRaService;
 
 	@Value("${sims.base.url}")
 	private String simsUrl;
@@ -74,6 +93,7 @@ public class ReportBuilderService {
 			FieldVisitDataService fieldVisitDataService,
 			FieldVisitDescriptionService fieldVisitDescriptionService,
 			LocationDescriptionService locationDescriptionService,
+			NwisRaService nwisRaService,
 			ParameterListService parameterListService,
 			QualifierLookupService qualifierLookupService,
 			TimeSeriesDataCorrectedService timeSeriesDataCorrectedService,
@@ -82,10 +102,31 @@ public class ReportBuilderService {
 		this.fieldVisitDataService = fieldVisitDataService;
 		this.fieldVisitDescriptionService = fieldVisitDescriptionService;
 		this.locationDescriptionService = locationDescriptionService;
+		this.nwisRaService = nwisRaService;
 		this.parameterListService = parameterListService;
 		this.qualifierLookupService = qualifierLookupService;
 		this.timeSeriesDataCorrectedService = timeSeriesDataCorrectedService;
 		this.timeSeriesDescriptionService = timeSeriesDescriptionService;
+	}
+
+	private String[] getNwisCodeAndName(String aqName, String unit, List<ParameterRecord> unitAliases, List<ParameterRecord> nameAliases) {
+		//First fine the NWIS name using the nameAliases
+		String nwisName = null;
+		for(ParameterRecord r : nameAliases) {
+			if(r.getAlias().equals(aqName)) {
+				nwisName = r.getName();
+			}
+		}
+		
+		//then find the pcode using the name and unit
+		String pcode = null;
+		for(ParameterRecord r : unitAliases) {
+			if(r.getAlias().equals(unit) && r.getName().equals(nwisName)) {
+				pcode = r.getCode();
+			}
+		}
+		
+		return new String[] { pcode, nwisName };
 	}
 
 	public DvHydrographReport buildReport(DvHydrographRequestParameters requestParameters, String requestingUser) {
@@ -94,32 +135,37 @@ public class ReportBuilderService {
 		Map<String, TimeSeriesDescription> timeSeriesDescriptions = timeSeriesDescriptionService.getTimeSeriesDescriptions(requestParameters);
 		Map<String, ParameterMetadata> parameterMetadata = parameterListService.getParameterMetadata();
 
+		ZoneOffset primarySeriesZoneOffset = getZoneOffset(timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier()));
+		String parameter = timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier()).getParameter().toString();
+		GroundWaterParameters gwParam = GroundWaterParameters.getByDisplayName(parameter);
+
 		TimeSeriesDataServiceResponse primarySeriesDataResponse = timeSeriesDataCorrectedService.get(
 				requestParameters.getPrimaryTimeseriesIdentifier(), requestParameters,
 				isDailyTimeSeries(timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier())),
-				getZoneOffset(timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier())));
+				primarySeriesZoneOffset);
 
-		dvHydroReport.setReportMetadata(createDvHydroMetadata(requestParameters, timeSeriesDescriptions, primarySeriesDataResponse, requestingUser));
+		dvHydroReport.setReportMetadata(createDvHydroMetadata(requestParameters, timeSeriesDescriptions, primarySeriesDataResponse, requestingUser, gwParam));
 
-//TODO
-//		if(isGw = (Boolean) primaryTsMetadata.get("groundWater");) {
-//			HashMap<String, String> gwReqParams = new HashMap<>();
-//			gwReqParams.putAll(requestParams);
-//			gwReqParams.put("gwLevEnt", primaryTsMetadata.get("waterLevelType") != null ? String.valueOf(primaryTsMetadata.get("waterLevelType")) : null);
-//			gwReqParams.put("seaLevelDatum", primaryTsMetadata.get("seaLevelDatum") != null ? String.valueOf(primaryTsMetadata.get("seaLevelDatum")) : null);
-//			if(StringUtils.isBlank(excludeDiscrete)) {
-//				DataRetrievalRequest gwLevelData = new DataRetrievalRequest(requestId, MessageConfiguration.DATA_RETRIEVAL_SERVICE_TAG, DataRetrievalRequest.RequestType.gwlevel, gwReqParams);
-//				parameterRequest = gwLevelData;
-//				paramOutMap.add(OutputMapUtils.getExtractMap("records", "gwlevel", gwLevelData.getSRI()));
-//				paramOutMap.add(OutputMapUtils.getExtractMap("allValid", "reportMetadata.gwlevelAllValid", gwLevelData.getSRI()));
-//			}
-//		} else
-		if (timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier()).getParameter().toString().contains("Discharge")) {
+
+		List<ParameterRecord> unitAliases = nwisRaService.getAqParameterUnits();
+		List<ParameterRecord> nameAliases = nwisRaService.getAqParameterNames();
+
+		String unit = timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier()).getUnit();
+
+		String[] nwisParameter = getNwisCodeAndName(parameter, unit, unitAliases, nameAliases);
+		String nwisPcode = nwisParameter[0];
+
+
+		if (GroundWaterParameters.anyDisplayStartsWith(parameter)) {
+			if (!requestParameters.isExcludeDiscrete()) {
+				dvHydroReport.setGwlevel(nwisRaService.getGwLevels(requestParameters,
+						dvHydroReport.getReportMetadata().getStationId(), gwParam, primarySeriesZoneOffset));
+			}
+		} else if (DISCHARGE_PARAMETER.contentEquals(parameter)) {
 			dvHydroReport.setFieldVisitMeasurements(buildFieldVisitMeasurements(requestParameters,
 					dvHydroReport.getReportMetadata().getStationId(),
-					getZoneOffset(timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier()))));
-//TODO
-//		} else if (isWq = primaryTsMetadata.get("nwisPcode") != null;){
+					primarySeriesZoneOffset));
+		} else if (nwisPcode != null) {
 //			HashMap<String, String> qwParams = new HashMap<>();
 //			qwParams.putAll(requestParams);
 //			qwParams.put("pcode", primaryTsMetadata.get("nwisPcode") != null ? String.valueOf(primaryTsMetadata.get("nwisPcode")) : null);
@@ -129,16 +175,7 @@ public class ReportBuilderService {
 //			}
 		}
 
-//		
-//		//calculate inverted flag
-//		result.setInverted(ParameterSpecService.isInvertedGwParam(result));
-//		
-//		//calculate ground water flag
-//		result.setGroundWater(ParameterSpecService.isGwParamater(result));
-//		
-//		//calculate discharge flag
-//		result.setDischarge(ParameterSpecService.isDischargeParameter(result));
-//		
+
 //		//groundwater filters
 //		GroundWaterParameters gwParam = GroundWaterParameters.getByDisplayName(result.getParameter());
 //		if(gwParam != null) {
@@ -248,13 +285,10 @@ public class ReportBuilderService {
 		return timeSeriesCorrectedData;
 	}
 
-	protected DvHydrographReportMetadata createDvHydroMetadata(DvHydrographRequestParameters requestParameters, Map<String, TimeSeriesDescription> timeSeriesDescriptions, TimeSeriesDataServiceResponse primarySeriesDataResponse, String requestingUser) {
-//		boolean inverted = false; GW ONLY!!!??
-//		try {
-//			inverted = (Boolean) primaryTsMetadata.get("inverted");
-//		} catch (Exception e) {
-//			log.trace("No inverted flag found");
-//		}
+	protected DvHydrographReportMetadata createDvHydroMetadata(DvHydrographRequestParameters requestParameters,
+			Map<String, TimeSeriesDescription> timeSeriesDescriptions,
+			TimeSeriesDataServiceResponse primarySeriesDataResponse, String requestingUser,
+			GroundWaterParameters gwParam) {
 		DvHydrographReportMetadata metadata = new DvHydrographReportMetadata();
 
 		metadata.setExcludeDiscrete(requestParameters.isExcludeDiscrete());
@@ -299,6 +333,8 @@ public class ReportBuilderService {
 		LocationDescription locationDescription = locationDescriptionService.getByLocationIdentifier(timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier()).getLocationIdentifier());
 		metadata.setStationName(locationDescription.getName());
 		metadata.setStationId(locationDescription.getIdentifier());
+
+		metadata.setInverted(null != gwParam);
 
 		return metadata;
 	}
@@ -474,74 +510,4 @@ public class ReportBuilderService {
 			return false;
 		}
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	/**
-	 * Returns whether or not the supplied field visit had ice cover when it was performed
-	 * @param fieldVisitDataResponse The Aquarius field visit service response to check
-	 * @return TRUE - Ice Cover was present | FALSE - Ice Cover was not present
-	 */
-//	public boolean isIceCover(FieldVisitDataServiceResponse fieldVisitDataResponse) {
-//		boolean isIceCover = false;
-//		ControlConditionActivity c = fieldVisitDataResponse.getControlConditionActivity();
-//
-//		if(c != null) {
-//			for(ControlConditionType iceCoverType : ICE_COVER_CONTROL_CONDITIONS) {
-//				if(c.getControlCondition().equals(iceCoverType)) {
-//					isIceCover = true;
-//					break;
-//				}
-//			}
-//		}
-//
-//		return isIceCover;
-//	}
-
-
-
-//	private static final List<ControlConditionType> ICE_COVER_CONTROL_CONDITIONS = Arrays.asList(new ControlConditionType[] {
-//			ControlConditionType.IceCover,
-//			ControlConditionType.IceShore,
-//			ControlConditionType.IceAnchor
-//	});
-
-//	private String createReportURL(String reportType, Map<String, String> parameters) {
-//		String reportUrl = BASE_URL + reportType + "?";
-//		
-//		for(Map.Entry<String, String> entry : parameters.entrySet()) {
-//			if(entry.getKey() != null && entry.getKey().length() > 0) {
-//				reportUrl += entry.getKey() + "=" + entry.getValue() + "&";
-//			}
-//		}
-//		
-//		return reportUrl.substring(0, reportUrl.length()-1);
-//	}
-
 }
