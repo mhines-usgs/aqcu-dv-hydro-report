@@ -6,6 +6,7 @@
     <packaging>jar</packaging>
 
     <properties>
+        <cida.maven.url>https://internal.cida.usgs.gov/maven/content/repositories</cida.maven.url>
         <wma.artifactory.url>https://cida.usgs.gov/artifactory</wma.artifactory.url>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -35,6 +36,14 @@
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>1.5.10.RELEASE</version>
     </parent>
+
+    <repositories>
+        <repository>
+            <id>aqcu-maven-centralized</id>
+            <name>AQCU Maven Centralized (Artifactor)</name>
+            <url>${wma.artifactory.url}/aqcu-maven-centralized/</url>
+        </repository>
+    </repositories>
 
     <dependencyManagement>
         <dependencies>

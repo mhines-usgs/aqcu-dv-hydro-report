@@ -1,11 +1,25 @@
 server:
-  port: ${serverPort:443}
+  port: ${serverPort:8443}
   use-forward-headers: true
   ssl:
     key-store: ${keystoreLocation}
     key-store-password: ${keystorePassword}
     key-password: ${keystorePassword}
     key-alias: ${keystoreSSLKey:tomcat}
+
+aquarius:
+  service:
+    endpoint: ${aquariusServiceEndpoint}
+    user: ${aquariusServiceUser}
+    password: ${aquariusServicePassword}
+
+sims:
+  base:
+    url: ${simsBaseUrl}
+
+waterdata:
+  base:
+    url: ${waterdataBaseUrl}
 
 security:
   require-ssl: true
@@ -18,7 +32,7 @@ management:
 
 javaToR:
   ribbon:
-    listOfServers: ${javaToRServers}
+    listOfServers: ${javaToRServerList}
     IsSecure: ${javaToRIsSecure:true}
 
 nwisRa:
