@@ -26,6 +26,7 @@ public class DvHydrographReport {
 	private TimeSeriesCorrectedData thirdReferenceTimeSeries;
 	private TimeSeriesCorrectedData thirdStatDerived;
 	private String waterdataUrl;
+	private List<WaterQualitySampleRecord> waterQuality;
 
 	public TimeSeriesCorrectedData getFirstStatDerived() {
 		return firstStatDerived;
@@ -122,5 +123,11 @@ public class DvHydrographReport {
 	}
 	public void setWaterdataUrl(String waterdataUrl) {
 		this.waterdataUrl = waterdataUrl;
+	}
+	public List<WaterQualitySampleRecord> getWaterQuality() {
+		return waterQuality;
+	}
+	public void setWaterQuality(List<WaterQualitySampleRecord> waterQuality) {
+		this.waterQuality = waterQuality;
 	}
 }

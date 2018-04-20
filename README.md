@@ -25,7 +25,10 @@ https://reporting-qa.nwis.usgs.gov/timeseries-ws/service/reports/dvhydrograph/?p
 
 
 
-https://localhost:8880/aqcu-gateway/aqcu-webservice/service/reports/dvhydrograph/?primaryTimeseriesIdentifier=21697b76433043c4951e0ec49545d132&firstStatDerivedIdentifier=8140746f1a5346fa9460fddad3c28a16&secondStatDerivedIdentifier=&thirdStatDerivedIdentifier=&fourthStatDerivedIdentifier=&firstReferenceIdentifier=&secondReferenceIdentifier=&thirdReferenceIdentifier=&station=302948095422501&waterYear=2016&token=2ad71416-161d-494d-b98d-3460d6b1a940
+https://localhost:8880/aqcu-gateway/service/reports/dvhydrograph/?primaryTimeseriesIdentifier=21697b76433043c4951e0ec49545d132&firstStatDerivedIdentifier=8140746f1a5346fa9460fddad3c28a16&secondStatDerivedIdentifier=&thirdStatDerivedIdentifier=&fourthStatDerivedIdentifier=&firstReferenceIdentifier=&secondReferenceIdentifier=&thirdReferenceIdentifier=&station=302948095422501&waterYear=2016&token=2ad71416-161d-494d-b98d-3460d6b1a940
+
+
+https://localhost:8880/aqcu-gateway/service/reports/dvhydrograph/?primaryTimeseriesIdentifier=4d62d997afea458a8ca722d55a479f5c&firstStatDerivedIdentifier=aec5c04ce5e540469d6c7685da66e73b&secondStatDerivedIdentifier=&thirdStatDerivedIdentifier=&fourthStatDerivedIdentifier=&firstReferenceIdentifier=&secondReferenceIdentifier=&thirdReferenceIdentifier=&station=251457080395802&waterYear=2015&token=2ad71416-161d-494d-b98d-3460d6b1a940
 
 		//calculate inverted flag
 		result.setInverted(ParameterSpecService.isInvertedGwParam(result));

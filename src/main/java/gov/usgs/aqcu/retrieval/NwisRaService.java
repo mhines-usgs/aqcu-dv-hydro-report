@@ -2,9 +2,7 @@ package gov.usgs.aqcu.retrieval;
 
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,9 +56,9 @@ public class NwisRaService {
 		return deseriealize(responseEntity.getBody(), WaterLevelRecords.class).getRecords();
 	}
 
-	public List<WaterQualitySampleRecord> getQwData(DvHydrographRequestParameters requestParameters, String siteId, ZoneOffset zoneOffset) {
-		ResponseEntity<String> responseEntity = nwisRaClient.getWaterLevelRecords(siteId, QW_COLUMN_GROUPS_TO_RETRIEVE,
-				true, true, pcode, pcode, getPartialDateString(requestParameters, zoneOffset));
+	public List<WaterQualitySampleRecord> getQwData(DvHydrographRequestParameters requestParameters, String siteId, String nwisPcode, ZoneOffset zoneOffset) {
+		ResponseEntity<String> responseEntity = nwisRaClient.getWaterQualitySampleRecords(siteId, QW_COLUMN_GROUPS_TO_RETRIEVE,
+				"true", "true", nwisPcode, nwisPcode, getPartialDateString(requestParameters, zoneOffset));
 		return deseriealize(responseEntity.getBody(), WaterQualitySampleRecords.class).getRecords();
 	}
 
