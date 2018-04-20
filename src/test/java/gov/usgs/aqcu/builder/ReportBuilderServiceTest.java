@@ -37,6 +37,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.aquaticinformatics.aquarius.sdk.timeseries.serializers.InstantDeserializer;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.Approval;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.ControlConditionActivity;
 import com.aquaticinformatics.aquarius.sdk.timeseries.servicemodels.Publish.ControlConditionType;
@@ -71,6 +72,9 @@ import gov.usgs.aqcu.model.MinMaxData;
 import gov.usgs.aqcu.model.MinMaxPoint;
 import gov.usgs.aqcu.model.ParameterRecord;
 import gov.usgs.aqcu.model.TimeSeriesCorrectedData;
+import gov.usgs.aqcu.model.WaterLevelRecord;
+import gov.usgs.aqcu.model.WaterQualitySampleRecord;
+import gov.usgs.aqcu.model.WqValue;
 import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 import gov.usgs.aqcu.retrieval.FieldVisitDataService;
 import gov.usgs.aqcu.retrieval.FieldVisitDescriptionService;
@@ -127,25 +131,266 @@ public class ReportBuilderServiceTest {
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	public void buildReportNoNwisRaTest() {
+		given(parameterListService.getParameterMetadata()).willReturn(getParameterMetadata());
 		given(timeSeriesDescriptionService.getTimeSeriesDescriptions(any(DvHydrographRequestParameters.class)))
 				.willReturn(buildTimeSeriesDescriptions());
 		given(timeSeriesDataCorrectedService.get(anyString(), any(DvHydrographRequestParameters.class), any(boolean.class), any(ZoneOffset.class)))
-				.willReturn(getTimeSeriesDataServiceResponse(true, ZoneOffset.of("-6")));
+				.willReturn(getTimeSeriesDataServiceResponse(true, ZoneOffset.of("-4"), true),
+						getTimeSeriesDataServiceResponse(false, ZoneOffset.of("-4"), true));
 		given(locationDescriptionService.getByLocationIdentifier(anyString()))
 			.willReturn(new LocationDescription().setIdentifier("0010010000").setName("monitoringLocation"));
-//		given(qualifierLookupService.getByQualifierList(anyList())).willReturn(metadataMap);
-//		TimeSeriesDataServiceResponse primarySeriesDataResponse = new TimeSeriesDataServiceResponse()
-//				.setQualifiers(new ArrayList<Qualifier>());
-//		GroundWaterParameters gwParam = GroundWaterParameters.FWat_LVL_BLSD;
-//		DvHydrographReportMetadata actual = service.createDvHydroMetadata(buildRequestParameters(),
-//				buildTimeSeriesDescriptions(), primarySeriesDataResponse, "testUser", gwParam);
-//	
-//		assertThat(actual, samePropertyValuesAs(buildFirstExpectedDvHydroMetadata()));
+		given(dataGapListBuilderService.buildGapList(anyList(), any(boolean.class), any(ZoneOffset.class)))
+			.willReturn(getGapList());
+		given(qualifierLookupService.getByQualifierList(anyList())).willReturn(metadataMap);
+		given(fieldVisitDataService.get(anyString()))
+			.willReturn(getFieldVisitDataServiceResponse(getActivities()));
+		given(fieldVisitDescriptionService.getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class)))
+			.willReturn(getFieldVisitDecriptions());
+
 		DvHydrographReport actual = service.buildReport(buildRequestParameters(), "requestingUser");
-		ObjectCompare.assertDaoTestResults(DvHydrographReport.class,
-				buildExpectedDvHydrographReport(), actual);
-		//TODO verifies
+		ObjectCompare.compare(buildExpectedDvHydrographReport(), actual);
+
+		verify(parameterListService).getParameterMetadata();
+		verify(timeSeriesDescriptionService).getTimeSeriesDescriptions(any(DvHydrographRequestParameters.class));
+		verify(timeSeriesDataCorrectedService, times(9)).get(anyString(), any(DvHydrographRequestParameters.class), any(boolean.class), any(ZoneOffset.class));
+		verify(locationDescriptionService).getByLocationIdentifier(anyString());
+		verify(dataGapListBuilderService, times(8)).buildGapList(anyList(), any(boolean.class), any(ZoneOffset.class));
+		verify(qualifierLookupService).getByQualifierList(anyList());
+		verify(fieldVisitDataService, times(2)).get(anyString());
+		verify(fieldVisitDescriptionService).getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class));
+
+		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameters.class), any(ZoneOffset.class));
+		verify(nwisRaService, never()).getQwData(any(DvHydrographRequestParameters.class), anyString(), anyString(), any(ZoneOffset.class));
+		verify(nwisRaService, never()).getAqParameterNames();
+		verify(nwisRaService, never()).getAqParameterUnits();
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void buildGwExcludedReportTest() {
+		given(parameterListService.getParameterMetadata()).willReturn(getParameterMetadata());
+		given(timeSeriesDescriptionService.getTimeSeriesDescriptions(any(DvHydrographRequestParameters.class)))
+				.willReturn(buildGwTimeSeriesDescriptions());
+		given(timeSeriesDataCorrectedService.get(anyString(), any(DvHydrographRequestParameters.class), any(boolean.class), any(ZoneOffset.class)))
+				.willReturn(getTimeSeriesDataServiceResponse(true, ZoneOffset.of("-4"), true),
+						getTimeSeriesDataServiceResponse(false, ZoneOffset.of("-4"), true));
+		given(locationDescriptionService.getByLocationIdentifier(anyString()))
+			.willReturn(new LocationDescription().setIdentifier("0010010000").setName("monitoringLocation"));
+		given(dataGapListBuilderService.buildGapList(anyList(), any(boolean.class), any(ZoneOffset.class)))
+			.willReturn(getGapList());
+		given(qualifierLookupService.getByQualifierList(anyList())).willReturn(metadataMap);
+
+		DvHydrographRequestParameters requestParameters = new DvHydrographRequestParameters();
+		requestParameters.setPrimaryTimeseriesIdentifier("a");
+		requestParameters.setFirstStatDerivedIdentifier("b");
+		requestParameters.setStartDate(REPORT_START_DATE);
+		requestParameters.setEndDate(REPORT_END_DATE);
+		requestParameters.setExcludeDiscrete(true);
+
+		DvHydrographReport actual = service.buildReport(requestParameters, "requestingUser");
+		ObjectCompare.compare(buildExpectedGwDvHydrographReport(true), actual);
+
+		verify(parameterListService).getParameterMetadata();
+		verify(timeSeriesDescriptionService).getTimeSeriesDescriptions(any(DvHydrographRequestParameters.class));
+		verify(timeSeriesDataCorrectedService, times(2)).get(anyString(), any(DvHydrographRequestParameters.class), any(boolean.class), any(ZoneOffset.class));
+		verify(locationDescriptionService).getByLocationIdentifier(anyString());
+		verify(dataGapListBuilderService, times(1)).buildGapList(anyList(), any(boolean.class), any(ZoneOffset.class));
+		verify(qualifierLookupService).getByQualifierList(anyList());
+		verify(fieldVisitDataService, never()).get(anyString());
+		verify(fieldVisitDescriptionService, never()).getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class));
+
+		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameters.class), any(ZoneOffset.class));
+		verify(nwisRaService, never()).getQwData(any(DvHydrographRequestParameters.class), anyString(), anyString(), any(ZoneOffset.class));
+		verify(nwisRaService, never()).getAqParameterNames();
+		verify(nwisRaService, never()).getAqParameterUnits();
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void buildGwReportTest() {
+		given(parameterListService.getParameterMetadata()).willReturn(getParameterMetadata());
+		given(timeSeriesDescriptionService.getTimeSeriesDescriptions(any(DvHydrographRequestParameters.class)))
+				.willReturn(buildGwTimeSeriesDescriptions());
+		given(timeSeriesDataCorrectedService.get(anyString(), any(DvHydrographRequestParameters.class), any(boolean.class), any(ZoneOffset.class)))
+				.willReturn(getTimeSeriesDataServiceResponse(true, ZoneOffset.of("-4"), true),
+						getTimeSeriesDataServiceResponse(false, ZoneOffset.of("-4"), true));
+		given(locationDescriptionService.getByLocationIdentifier(anyString()))
+			.willReturn(new LocationDescription().setIdentifier("0010010000").setName("monitoringLocation"));
+		given(dataGapListBuilderService.buildGapList(anyList(), any(boolean.class), any(ZoneOffset.class)))
+			.willReturn(getGapList());
+		given(qualifierLookupService.getByQualifierList(anyList())).willReturn(metadataMap);
+		given(nwisRaService.getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameters.class), any(ZoneOffset.class)))
+			.willReturn(getGwLevels());
+
+		DvHydrographRequestParameters requestParameters = new DvHydrographRequestParameters();
+		requestParameters.setPrimaryTimeseriesIdentifier("a");
+		requestParameters.setFirstStatDerivedIdentifier("b");
+		requestParameters.setStartDate(REPORT_START_DATE);
+		requestParameters.setEndDate(REPORT_END_DATE);
+		requestParameters.setExcludeDiscrete(false);
+
+		DvHydrographReport actual = service.buildReport(requestParameters, "requestingUser");
+		ObjectCompare.compare(buildExpectedGwDvHydrographReport(false), actual);
+
+		verify(parameterListService).getParameterMetadata();
+		verify(timeSeriesDescriptionService).getTimeSeriesDescriptions(any(DvHydrographRequestParameters.class));
+		verify(timeSeriesDataCorrectedService, times(2)).get(anyString(), any(DvHydrographRequestParameters.class), any(boolean.class), any(ZoneOffset.class));
+		verify(locationDescriptionService).getByLocationIdentifier(anyString());
+		verify(dataGapListBuilderService, times(1)).buildGapList(anyList(), any(boolean.class), any(ZoneOffset.class));
+		verify(qualifierLookupService).getByQualifierList(anyList());
+		verify(fieldVisitDataService, never()).get(anyString());
+		verify(fieldVisitDescriptionService, never()).getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class));
+
+		verify(nwisRaService).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameters.class), any(ZoneOffset.class));
+		verify(nwisRaService, never()).getQwData(any(DvHydrographRequestParameters.class), anyString(), anyString(), any(ZoneOffset.class));
+		verify(nwisRaService, never()).getAqParameterNames();
+		verify(nwisRaService, never()).getAqParameterUnits();
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void buildWqExcludedReportTest() {
+		given(parameterListService.getParameterMetadata()).willReturn(getParameterMetadata());
+		given(timeSeriesDescriptionService.getTimeSeriesDescriptions(any(DvHydrographRequestParameters.class)))
+				.willReturn(buildWqTimeSeriesDescriptions("aqname"));
+		given(timeSeriesDataCorrectedService.get(anyString(), any(DvHydrographRequestParameters.class), any(boolean.class), any(ZoneOffset.class)))
+				.willReturn(getTimeSeriesDataServiceResponse(true, ZoneOffset.of("-4"), false),
+						getTimeSeriesDataServiceResponse(false, ZoneOffset.of("-4"), false));
+		given(locationDescriptionService.getByLocationIdentifier(anyString()))
+			.willReturn(new LocationDescription().setIdentifier("0010010000").setName("monitoringLocation"));
+		given(dataGapListBuilderService.buildGapList(anyList(), any(boolean.class), any(ZoneOffset.class)))
+			.willReturn(getGapList());
+		given(qualifierLookupService.getByQualifierList(anyList())).willReturn(metadataMap);
+
+		DvHydrographRequestParameters requestParameters = new DvHydrographRequestParameters();
+		requestParameters.setPrimaryTimeseriesIdentifier("a");
+		requestParameters.setSecondStatDerivedIdentifier("c");
+		requestParameters.setStartDate(REPORT_START_DATE);
+		requestParameters.setEndDate(REPORT_END_DATE);
+		requestParameters.setExcludeDiscrete(true);
+
+		DvHydrographReport actual = service.buildReport(requestParameters, "requestingUser");
+		ObjectCompare.compare(buildExpectedWqDvHydrographReport(true, false), actual);
+
+		verify(parameterListService).getParameterMetadata();
+		verify(timeSeriesDescriptionService).getTimeSeriesDescriptions(any(DvHydrographRequestParameters.class));
+		verify(timeSeriesDataCorrectedService, times(2)).get(anyString(), any(DvHydrographRequestParameters.class), any(boolean.class), any(ZoneOffset.class));
+		verify(locationDescriptionService).getByLocationIdentifier(anyString());
+		verify(dataGapListBuilderService, times(1)).buildGapList(anyList(), any(boolean.class), any(ZoneOffset.class));
+		verify(qualifierLookupService).getByQualifierList(anyList());
+		verify(fieldVisitDataService, never()).get(anyString());
+		verify(fieldVisitDescriptionService, never()).getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class));
+
+		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameters.class), any(ZoneOffset.class));
+		verify(nwisRaService, never()).getQwData(any(DvHydrographRequestParameters.class), anyString(), anyString(), any(ZoneOffset.class));
+		verify(nwisRaService, never()).getAqParameterNames();
+		verify(nwisRaService, never()).getAqParameterUnits();
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void buildWqNoPcodeReportTest() {
+		ParameterRecord pcodeA = new ParameterRecord();
+		pcodeA.setName("nwisName");
+		pcodeA.setAlias("unit");
+		pcodeA.setCode("pCode");
+		ParameterRecord aqname = new ParameterRecord();
+		aqname.setAlias("aqname");
+		aqname.setName("nwisName");
+
+		given(parameterListService.getParameterMetadata()).willReturn(getParameterMetadata());
+		given(timeSeriesDescriptionService.getTimeSeriesDescriptions(any(DvHydrographRequestParameters.class)))
+				.willReturn(buildWqTimeSeriesDescriptions("xxx"));
+		given(timeSeriesDataCorrectedService.get(anyString(), any(DvHydrographRequestParameters.class), any(boolean.class), any(ZoneOffset.class)))
+				.willReturn(getTimeSeriesDataServiceResponse(true, ZoneOffset.of("-4"), false),
+						getTimeSeriesDataServiceResponse(false, ZoneOffset.of("-4"), false));
+		given(locationDescriptionService.getByLocationIdentifier(anyString()))
+			.willReturn(new LocationDescription().setIdentifier("0010010000").setName("monitoringLocation"));
+		given(dataGapListBuilderService.buildGapList(anyList(), any(boolean.class), any(ZoneOffset.class)))
+			.willReturn(getGapList());
+		given(qualifierLookupService.getByQualifierList(anyList())).willReturn(metadataMap);
+		given(nwisRaService.getQwData(any(DvHydrographRequestParameters.class), anyString(), anyString(), any(ZoneOffset.class)))
+			.willReturn(getWaterQualityRecords());
+		given(nwisRaService.getAqParameterNames()).willReturn(Arrays.asList(aqname));
+		given(nwisRaService.getAqParameterUnits()).willReturn(Arrays.asList(pcodeA));
+
+		DvHydrographRequestParameters requestParameters = new DvHydrographRequestParameters();
+		requestParameters.setPrimaryTimeseriesIdentifier("a");
+		requestParameters.setSecondStatDerivedIdentifier("c");
+		requestParameters.setStartDate(REPORT_START_DATE);
+		requestParameters.setEndDate(REPORT_END_DATE);
+		requestParameters.setExcludeDiscrete(false);
+
+		DvHydrographReport actual = service.buildReport(requestParameters, "requestingUser");
+		ObjectCompare.compare(buildExpectedWqDvHydrographReport(false, false), actual);
+
+		verify(parameterListService).getParameterMetadata();
+		verify(timeSeriesDescriptionService).getTimeSeriesDescriptions(any(DvHydrographRequestParameters.class));
+		verify(timeSeriesDataCorrectedService, times(2)).get(anyString(), any(DvHydrographRequestParameters.class), any(boolean.class), any(ZoneOffset.class));
+		verify(locationDescriptionService).getByLocationIdentifier(anyString());
+		verify(dataGapListBuilderService, times(1)).buildGapList(anyList(), any(boolean.class), any(ZoneOffset.class));
+		verify(qualifierLookupService).getByQualifierList(anyList());
+		verify(fieldVisitDataService, never()).get(anyString());
+		verify(fieldVisitDescriptionService, never()).getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class));
+
+		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameters.class), any(ZoneOffset.class));
+		verify(nwisRaService, never()).getQwData(any(DvHydrographRequestParameters.class), anyString(), anyString(), any(ZoneOffset.class));
+		verify(nwisRaService).getAqParameterNames();
+		verify(nwisRaService, never()).getAqParameterUnits();
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void buildWqReportTest() {
+		ParameterRecord pcodeA = new ParameterRecord();
+		pcodeA.setName("nwisName");
+		pcodeA.setAlias("unit");
+		pcodeA.setCode("pCode");
+		ParameterRecord aqname = new ParameterRecord();
+		aqname.setAlias("aqname");
+		aqname.setName("nwisName");
+
+		given(parameterListService.getParameterMetadata()).willReturn(getParameterMetadata());
+		given(timeSeriesDescriptionService.getTimeSeriesDescriptions(any(DvHydrographRequestParameters.class)))
+				.willReturn(buildWqTimeSeriesDescriptions("aqname"));
+		given(timeSeriesDataCorrectedService.get(anyString(), any(DvHydrographRequestParameters.class), any(boolean.class), any(ZoneOffset.class)))
+				.willReturn(getTimeSeriesDataServiceResponse(true, ZoneOffset.of("-4"), false),
+						getTimeSeriesDataServiceResponse(false, ZoneOffset.of("-4"), false));
+		given(locationDescriptionService.getByLocationIdentifier(anyString()))
+			.willReturn(new LocationDescription().setIdentifier("0010010000").setName("monitoringLocation"));
+		given(dataGapListBuilderService.buildGapList(anyList(), any(boolean.class), any(ZoneOffset.class)))
+			.willReturn(getGapList());
+		given(qualifierLookupService.getByQualifierList(anyList())).willReturn(metadataMap);
+		given(nwisRaService.getQwData(any(DvHydrographRequestParameters.class), anyString(), anyString(), any(ZoneOffset.class)))
+			.willReturn(getWaterQualityRecords());
+		given(nwisRaService.getAqParameterNames()).willReturn(Arrays.asList(aqname));
+		given(nwisRaService.getAqParameterUnits()).willReturn(Arrays.asList(pcodeA));
+
+		DvHydrographRequestParameters requestParameters = new DvHydrographRequestParameters();
+		requestParameters.setPrimaryTimeseriesIdentifier("a");
+		requestParameters.setSecondStatDerivedIdentifier("c");
+		requestParameters.setStartDate(REPORT_START_DATE);
+		requestParameters.setEndDate(REPORT_END_DATE);
+		requestParameters.setExcludeDiscrete(false);
+
+		DvHydrographReport actual = service.buildReport(requestParameters, "requestingUser");
+		ObjectCompare.compare(buildExpectedWqDvHydrographReport(false, true), actual);
+
+		verify(parameterListService).getParameterMetadata();
+		verify(timeSeriesDescriptionService).getTimeSeriesDescriptions(any(DvHydrographRequestParameters.class));
+		verify(timeSeriesDataCorrectedService, times(2)).get(anyString(), any(DvHydrographRequestParameters.class), any(boolean.class), any(ZoneOffset.class));
+		verify(locationDescriptionService).getByLocationIdentifier(anyString());
+		verify(dataGapListBuilderService, times(1)).buildGapList(anyList(), any(boolean.class), any(ZoneOffset.class));
+		verify(qualifierLookupService).getByQualifierList(anyList());
+		verify(fieldVisitDataService, never()).get(anyString());
+		verify(fieldVisitDescriptionService, never()).getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class));
+
+		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameters.class), any(ZoneOffset.class));
+		verify(nwisRaService).getQwData(any(DvHydrographRequestParameters.class), anyString(), anyString(), any(ZoneOffset.class));
+		verify(nwisRaService).getAqParameterNames();
+		verify(nwisRaService).getAqParameterUnits();
 	}
 
 	@Test
@@ -271,7 +516,7 @@ public class ReportBuilderServiceTest {
 
 		given(timeSeriesDataCorrectedService.get(anyString(), any(DvHydrographRequestParameters.class),
 				any(boolean.class), any(ZoneOffset.class)))
-						.willReturn(getTimeSeriesDataServiceResponse(endOfPeriod, zoneOffset));
+						.willReturn(getTimeSeriesDataServiceResponse(endOfPeriod, zoneOffset, true));
 		given(dataGapListBuilderService.buildGapList(anyList(), any(boolean.class), any(ZoneOffset.class)))
 				.willReturn(getGapList());
 
@@ -279,8 +524,7 @@ public class ReportBuilderServiceTest {
 		descriptions.put("abc", new TimeSeriesDescription());
 		TimeSeriesCorrectedData actual = service.buildTimeSeriesCorrectedData(descriptions, "abc", null,
 				getParameterMetadata());
-		ObjectCompare.assertDaoTestResults(TimeSeriesCorrectedData.class,
-				getTimeSeriesCorrectedData(endOfPeriod, zoneOffset), actual);
+		ObjectCompare.compare(getTimeSeriesCorrectedData(endOfPeriod, zoneOffset, true), actual);
 	}
 
 	@Test
@@ -313,7 +557,8 @@ public class ReportBuilderServiceTest {
 		requestParmeters.setExcludeMinMax(true);
 		requestParmeters.setExcludeZeroNegative(true);
 		DvHydrographReportMetadata actual = service.createDvHydroMetadata(requestParmeters,
-				buildTimeSeriesDescriptionsII(), buildPrimarySeriesDescription(), primarySeriesDataResponse, "testUser",
+				buildTimeSeriesDescriptionsII(), buildPrimarySeriesDescription().setUtcOffset(Double.valueOf(4)),
+						primarySeriesDataResponse, "testUser",
 				gwParam);
 
 		assertThat(actual, samePropertyValuesAs(buildSecondExpectedDvHydroMetadata()));
@@ -340,36 +585,11 @@ public class ReportBuilderServiceTest {
 
 	@Test
 	public void buildFieldVisitMeasurements_loopTest() {
-		List<FieldVisitDescription> visits = Stream
-				.of(new FieldVisitDescription().setIdentifier("a"), new FieldVisitDescription().setIdentifier("b"))
-				.collect(Collectors.toList());
-		
 		given(fieldVisitDescriptionService.getDescriptions(anyString(), any(ZoneOffset.class),
-				any(DvHydrographRequestParameters.class))).willReturn(visits);
-
-		ArrayList<DischargeActivity> activities = Stream
-				.of(new DischargeActivity()
-						.setDischargeSummary(
-								new DischargeSummary().setMeasurementGrade(MeasurementGradeType.Good)
-										.setMeanGageHeight((QuantityWithDisplay) new QuantityWithDisplay()
-												.setUnit("meanGageHeightUnits").setDisplay("2.0090")
-												.setNumeric(Double.valueOf("2.0090")))
-										.setDischarge((QuantityWithDisplay) new QuantityWithDisplay()
-												.setUnit("dischargeUnits").setDisplay("20.0090")
-												.setNumeric(Double.valueOf("20.0090")))),
-					new DischargeActivity()
-						.setDischargeSummary(
-								new DischargeSummary().setMeasurementGrade(MeasurementGradeType.Excellent)
-										.setMeanGageHeight((QuantityWithDisplay) new QuantityWithDisplay()
-												.setUnit("meanGageHeightUnits").setDisplay("2.0090")
-												.setNumeric(Double.valueOf("2.0090")))
-										.setDischarge((QuantityWithDisplay) new QuantityWithDisplay()
-												.setUnit("dischargeUnits").setDisplay("20.0090")
-												.setNumeric(Double.valueOf("20.0090")))))
-				.collect(Collectors.toCollection(ArrayList::new));
+				any(DvHydrographRequestParameters.class))).willReturn(getFieldVisitDecriptions());
 
 		given(fieldVisitDataService.get(anyString()))
-				.willReturn(new FieldVisitDataServiceResponse().setDischargeActivities(activities));
+				.willReturn(getFieldVisitDataServiceResponse(getActivities()));
 
 		List<FieldVisitMeasurement> actual = service.buildFieldVisitMeasurements(null, null, null);
 		assertEquals(4, actual.size());
@@ -389,7 +609,7 @@ public class ReportBuilderServiceTest {
 		ArrayList<DischargeActivity> activities = Stream.of(new DischargeActivity(), new DischargeActivity())
 				.collect(Collectors.toCollection(ArrayList::new));
 		given(fieldVisitDataService.get(anyString()))
-				.willReturn(new FieldVisitDataServiceResponse().setDischargeActivities(activities));
+				.willReturn(getFieldVisitDataServiceResponse(activities));
 		FieldVisitDescription visit = new FieldVisitDescription();
 		List<FieldVisitMeasurement> actual = service.createFieldVisitMeasurements(visit);
 		assertTrue(actual.isEmpty());
@@ -403,7 +623,7 @@ public class ReportBuilderServiceTest {
 				.collect(Collectors.toCollection(ArrayList::new));
 
 		given(fieldVisitDataService.get(anyString()))
-				.willReturn(new FieldVisitDataServiceResponse().setDischargeActivities(activities));
+				.willReturn(getFieldVisitDataServiceResponse(activities));
 		FieldVisitDescription visit = new FieldVisitDescription();
 		List<FieldVisitMeasurement> actual = service.createFieldVisitMeasurements(visit);
 		assertTrue(actual.isEmpty());
@@ -411,28 +631,8 @@ public class ReportBuilderServiceTest {
 
 	@Test
 	public void createFieldVisitMeasurement_happyTest() {
-		ArrayList<DischargeActivity> activities = Stream
-				.of(new DischargeActivity()
-						.setDischargeSummary(
-								new DischargeSummary().setMeasurementGrade(MeasurementGradeType.Good)
-										.setMeanGageHeight((QuantityWithDisplay) new QuantityWithDisplay()
-												.setUnit("meanGageHeightUnits").setDisplay("2.0090")
-												.setNumeric(Double.valueOf("2.0090")))
-										.setDischarge((QuantityWithDisplay) new QuantityWithDisplay()
-												.setUnit("dischargeUnits").setDisplay("20.0090")
-												.setNumeric(Double.valueOf("20.0090")))),
-					new DischargeActivity()
-						.setDischargeSummary(
-							new DischargeSummary().setMeasurementGrade(MeasurementGradeType.Excellent)
-										.setMeanGageHeight((QuantityWithDisplay) new QuantityWithDisplay()
-												.setUnit("meanGageHeightUnits").setDisplay("2.0090")
-												.setNumeric(Double.valueOf("2.0090")))
-										.setDischarge((QuantityWithDisplay) new QuantityWithDisplay()
-												.setUnit("dischargeUnits").setDisplay("20.0090")
-												.setNumeric(Double.valueOf("20.0090")))))
-				.collect(Collectors.toCollection(ArrayList::new));
 		given(fieldVisitDataService.get(anyString()))
-				.willReturn(new FieldVisitDataServiceResponse().setDischargeActivities(activities));
+				.willReturn(getFieldVisitDataServiceResponse(getActivities()));
 		FieldVisitDescription visit = new FieldVisitDescription();
 		List<FieldVisitMeasurement> actual = service.createFieldVisitMeasurements(visit);
 		assertEquals(2, actual.size());
@@ -491,7 +691,7 @@ public class ReportBuilderServiceTest {
 		TimeSeriesCorrectedData expected = new TimeSeriesCorrectedData();
 		expected.setVolumetricFlow(false);
 		TimeSeriesCorrectedData actual = service.createTimeSeriesCorrectedData(tsd, true, false, ZoneOffset.UTC);
-		ObjectCompare.assertDaoTestResults(TimeSeriesCorrectedData.class, expected, actual);
+		ObjectCompare.compare(expected, actual);
 	}
 
 	@Test
@@ -502,11 +702,11 @@ public class ReportBuilderServiceTest {
 
 		boolean endOfPeriod = false;
 		ZoneOffset zoneOffset = ZoneOffset.UTC;
-		TimeSeriesDataServiceResponse tsd = getTimeSeriesDataServiceResponse(endOfPeriod, zoneOffset);
-		TimeSeriesCorrectedData expected = getTimeSeriesCorrectedData(endOfPeriod, zoneOffset);
+		TimeSeriesDataServiceResponse tsd = getTimeSeriesDataServiceResponse(endOfPeriod, zoneOffset, true);
+		TimeSeriesCorrectedData expected = getTimeSeriesCorrectedData(endOfPeriod, zoneOffset, true);
 
 		TimeSeriesCorrectedData actual = service.createTimeSeriesCorrectedData(tsd, false, true, ZoneOffset.UTC);
-		ObjectCompare.assertDaoTestResults(TimeSeriesCorrectedData.class, expected, actual);
+		ObjectCompare.compare(expected, actual);
 	}
 
 	@Test
@@ -517,11 +717,11 @@ public class ReportBuilderServiceTest {
 
 		boolean endOfPeriod = true;
 		ZoneOffset zoneOffset = ZoneOffset.of("-6");
-		TimeSeriesDataServiceResponse tsd = getTimeSeriesDataServiceResponse(endOfPeriod, zoneOffset);
-		TimeSeriesCorrectedData expected = getTimeSeriesCorrectedData(endOfPeriod, zoneOffset);
+		TimeSeriesDataServiceResponse tsd = getTimeSeriesDataServiceResponse(endOfPeriod, zoneOffset, true);
+		TimeSeriesCorrectedData expected = getTimeSeriesCorrectedData(endOfPeriod, zoneOffset, true);
 
 		TimeSeriesCorrectedData actual = service.createTimeSeriesCorrectedData(tsd, true, true, ZoneOffset.ofHours(-6));
-		ObjectCompare.assertDaoTestResults(TimeSeriesCorrectedData.class, expected, actual);
+		ObjectCompare.compare(expected, actual);
 	}
 
 	@Test
@@ -691,43 +891,91 @@ public class ReportBuilderServiceTest {
 	protected Map<String, TimeSeriesDescription> buildTimeSeriesDescriptions() {
 		Map<String, TimeSeriesDescription> descriptions = new HashMap<>();
 		descriptions.put("a", buildPrimarySeriesDescription());
-		descriptions.put("b", new TimeSeriesDescription().setIdentifier("firstStatDerived"));
-		descriptions.put("c", new TimeSeriesDescription().setIdentifier("secondStatDerived"));
-		descriptions.put("d", new TimeSeriesDescription().setIdentifier("thirdStatDerived"));
-		descriptions.put("e", new TimeSeriesDescription().setIdentifier("fourthStatDerived"));
-		descriptions.put("f", new TimeSeriesDescription().setIdentifier("firstRefTS"));
-		descriptions.put("g", new TimeSeriesDescription().setIdentifier("secondRefTS"));
-		descriptions.put("h", new TimeSeriesDescription().setIdentifier("thirdRefTS"));
-		descriptions.put("i", new TimeSeriesDescription().setIdentifier("comparison"));
+		descriptions.put("b", buildPrimarySeriesDescription().setIdentifier("firstStatDerived"));
+		descriptions.put("c", buildPrimarySeriesDescription().setIdentifier("secondStatDerived"));
+		descriptions.put("d", buildPrimarySeriesDescription().setIdentifier("thirdStatDerived"));
+		descriptions.put("e", buildPrimarySeriesDescription().setIdentifier("fourthStatDerived"));
+		descriptions.put("f", buildPrimarySeriesDescription().setIdentifier("firstRefTS"));
+		descriptions.put("g", buildPrimarySeriesDescription().setIdentifier("secondRefTS"));
+		descriptions.put("h", buildPrimarySeriesDescription().setIdentifier("thirdRefTS"));
+		descriptions.put("i", buildPrimarySeriesDescription().setIdentifier("comparison"));
+		return descriptions;
+	};
+
+	protected Map<String, TimeSeriesDescription> buildGwTimeSeriesDescriptions() {
+		Map<String, TimeSeriesDescription> descriptions = new HashMap<>();
+		descriptions.put("a", buildPrimarySeriesDescription().setParameter("WaterLevel, BelowLSD"));
+		descriptions.put("b", buildPrimarySeriesDescription().setIdentifier("firstStatDerived"));
+		return descriptions;
+	};
+
+	protected Map<String, TimeSeriesDescription> buildWqTimeSeriesDescriptions(String parameter) {
+		Map<String, TimeSeriesDescription> descriptions = new HashMap<>();
+		descriptions.put("a", buildPrimarySeriesDescription().setParameter(parameter).setUnit("unit"));
+		descriptions.put("c", buildPrimarySeriesDescription().setIdentifier("secondStatDerived"));
 		return descriptions;
 	};
 
 	protected DvHydrographReport buildExpectedDvHydrographReport() {
+		DvHydrographReportMetadata reportMetadata = buildFirstExpectedDvHydroMetadata();
+		reportMetadata.setInverted(false);
 		DvHydrographReport expected = new DvHydrographReport();
-		expected.setComparisonSeries(buildComparisonSeries());
-		expected.setFirstStatDerived(buildFirstStatDerived());
+		expected.setComparisonSeries(getTimeSeriesCorrectedData(false, ZoneOffset.ofHours(-4), true));
+		expected.setFieldVisitMeasurements(getFieldVisitMeasurements());
+		expected.setFirstStatDerived(getTimeSeriesCorrectedData(false, ZoneOffset.ofHours(-4), true));
+		expected.setFirstReferenceTimeSeries(getTimeSeriesCorrectedData(false, ZoneOffset.ofHours(-4), true));
+		expected.setFourthStatDerived(getTimeSeriesCorrectedData(false, ZoneOffset.ofHours(-4), true));
+		expected.setMaxMinData(getMaxMinData(true, ZoneOffset.ofHours(-4)));
+		expected.setPrimarySeriesApprovals(getApprovals());
+		expected.setPrimarySeriesQualifiers(getQualifiers());
+		expected.setReportMetadata(reportMetadata);
+		expected.setSecondReferenceTimeSeries(getTimeSeriesCorrectedData(false, ZoneOffset.ofHours(-4), true));
+		expected.setSecondStatDerived(getTimeSeriesCorrectedData(false, ZoneOffset.ofHours(-4), true));
+		expected.setThirdReferenceTimeSeries(getTimeSeriesCorrectedData(false, ZoneOffset.ofHours(-4), true));
+		expected.setThirdStatDerived(getTimeSeriesCorrectedData(false, ZoneOffset.ofHours(-4), true));
 		return expected;
 	}
 
-	protected TimeSeriesCorrectedData buildComparisonSeries() {
-		TimeSeriesCorrectedData timeSeriesCorrectedData = new TimeSeriesCorrectedData();
-		return timeSeriesCorrectedData;
+	protected DvHydrographReport buildExpectedGwDvHydrographReport(boolean isExcludeDiscrete) {
+		DvHydrographReportMetadata reportMetadata = buildExpectedGwDvHydroMetadata();
+		reportMetadata.setInverted(true);
+		reportMetadata.setExcludeDiscrete(isExcludeDiscrete);
+		DvHydrographReport expected = new DvHydrographReport();
+		expected.setFirstStatDerived(getTimeSeriesCorrectedData(false, ZoneOffset.ofHours(-4), true));
+		expected.setMaxMinData(getMaxMinData(true, ZoneOffset.ofHours(-4)));
+		expected.setPrimarySeriesApprovals(getApprovals());
+		expected.setPrimarySeriesQualifiers(getQualifiers());
+		expected.setReportMetadata(reportMetadata);
+		if (!isExcludeDiscrete) {
+			expected.setGwlevel(getGwLevels());
+		}
+		return expected;
 	}
 
-	protected TimeSeriesCorrectedData buildFirstStatDerived() {
-		TimeSeriesCorrectedData timeSeriesCorrectedData = new TimeSeriesCorrectedData();
-		return timeSeriesCorrectedData;
+	protected DvHydrographReport buildExpectedWqDvHydrographReport(boolean isExcludeDiscrete, boolean expectData) {
+		DvHydrographReportMetadata reportMetadata = buildExpectedWqDvHydroMetadata();
+		reportMetadata.setInverted(false);
+		reportMetadata.setExcludeDiscrete(isExcludeDiscrete);
+		DvHydrographReport expected = new DvHydrographReport();
+		expected.setSecondStatDerived(getTimeSeriesCorrectedData(false, ZoneOffset.ofHours(-4), false));
+		expected.setPrimarySeriesApprovals(getApprovals());
+		expected.setPrimarySeriesQualifiers(getQualifiers());
+		expected.setReportMetadata(reportMetadata);
+		if (!isExcludeDiscrete && expectData) {
+			expected.setWaterQuality(getWaterQualityRecords());
+		}
+		return expected;
 	}
 
 	protected TimeSeriesDescription buildPrimarySeriesDescription() {
 		return new TimeSeriesDescription()
 				.setIdentifier("primaryIdentifier")
 				.setUtcOffset(Double.valueOf(-4))
-				.setParameter("def");
+				.setParameter("Discharge");
 	}
 	protected Map<String, TimeSeriesDescription> buildTimeSeriesDescriptionsII() {
 		Map<String, TimeSeriesDescription> descriptions = new HashMap<>();
-		descriptions.put("a", buildPrimarySeriesDescription());
+		descriptions.put("a", buildPrimarySeriesDescription().setUtcOffset(Double.valueOf(4)));
 		return descriptions;
 	};
 
@@ -780,6 +1028,44 @@ public class ReportBuilderServiceTest {
 		expected.setSecondStatDerivedLabel(null);
 		expected.setThirdReferenceTimeSeriesLabel(null);
 		expected.setThirdStatDerivedLabel(null);
+		return expected;
+	}
+
+	protected DvHydrographReportMetadata buildExpectedGwDvHydroMetadata() {
+		DvHydrographReportMetadata expected = new DvHydrographReportMetadata();
+		expected.setTimezone("Etc/GMT+4");
+		expected.setStartDate(REPORT_START_INSTANT);
+		expected.setEndDate(REPORT_END_INSTANT);
+		expected.setTitle("DV Hydrograph");
+		expected.setStationName("monitoringLocation");
+		expected.setStationId("0010010000");
+		expected.setQualifierMetadata(metadataMap);
+
+		expected.setFirstStatDerivedLabel("firstStatDerived");
+		expected.setInverted(true);
+		expected.setPrimarySeriesLabel("primaryIdentifier");
+		expected.setExcludeDiscrete(false);
+		expected.setExcludeZeroNegative(false);
+		expected.setExcludeMinMax(false);
+		return expected;
+	}
+
+	protected DvHydrographReportMetadata buildExpectedWqDvHydroMetadata() {
+		DvHydrographReportMetadata expected = new DvHydrographReportMetadata();
+		expected.setTimezone("Etc/GMT+4");
+		expected.setStartDate(REPORT_START_INSTANT);
+		expected.setEndDate(REPORT_END_INSTANT);
+		expected.setTitle("DV Hydrograph");
+		expected.setStationName("monitoringLocation");
+		expected.setStationId("0010010000");
+		expected.setQualifierMetadata(metadataMap);
+
+		expected.setSecondStatDerivedLabel("secondStatDerived");
+		expected.setInverted(true);
+		expected.setPrimarySeriesLabel("primaryIdentifier");
+		expected.setExcludeDiscrete(false);
+		expected.setExcludeZeroNegative(false);
+		expected.setExcludeMinMax(false);
 		return expected;
 	}
 
@@ -982,17 +1268,31 @@ public class ReportBuilderServiceTest {
 	}
 
 	protected List<Approval> getApprovals() {
-		return Stream.of(new Approval(), new Approval()).collect(Collectors.toList());
+		return Stream.of(getApproval1(), getApproval2()).collect(Collectors.toList());
+	}
+	protected Approval getApproval1() {
+		Approval approval = new Approval().setApprovalLevel(1200).setDateAppliedUtc(nowInstant).setUser("admin")
+				.setLevelDescription("Approved").setComment("wow");
+		approval.setStartTime(Instant.parse("2000-01-01T00:00:00.0000000Z"));
+		approval.setEndTime(InstantDeserializer.MaxConcreteValue);
+		return approval;
+	}
+	protected Approval getApproval2() {
+		Approval approval = new Approval().setApprovalLevel(900).setDateAppliedUtc(nowInstant).setUser("admin")
+				.setLevelDescription("Working").setComment("wow");
+		approval.setStartTime(InstantDeserializer.MinConcreteValue);
+		approval.setEndTime(Instant.parse("1999-12-31T23:59:59.9999999Z"));
+		return approval;
 	}
 
 	protected List<GapTolerance> getGapTolerances() {
 		return Stream.of(new GapTolerance(), new GapTolerance()).collect(Collectors.toList());
 	}
 
-	protected TimeSeriesDataServiceResponse getTimeSeriesDataServiceResponse(boolean endOfPeriod, ZoneOffset zoneOffset) {
+	protected TimeSeriesDataServiceResponse getTimeSeriesDataServiceResponse(boolean endOfPeriod, ZoneOffset zoneOffset, boolean withPoints) {
 		ArrayList<Qualifier> qualifiers = new ArrayList<>(getQualifiers());
 
-		return new TimeSeriesDataServiceResponse()
+		TimeSeriesDataServiceResponse timeSeriesDataServiceResponse = new TimeSeriesDataServiceResponse()
 				.setTimeRange(new StatisticalTimeRange()
 						.setStartTime(new StatisticalDateTimeOffset()
 								.setDateTimeOffset(getTestInstant(endOfPeriod, zoneOffset, 2))
@@ -1002,17 +1302,24 @@ public class ReportBuilderServiceTest {
 								.setRepresentsEndOfTimePeriod(endOfPeriod)))
 				.setUnit("myUnit")
 				.setParameter("def")
-				.setPoints(getTimeSeriesPoints(endOfPeriod, zoneOffset))
 				.setQualifiers(qualifiers)
 				.setApprovals(new ArrayList<Approval>(getApprovals()))
 				.setGapTolerances(new ArrayList<GapTolerance>(getGapTolerances()));
+
+		if (withPoints) {
+			timeSeriesDataServiceResponse.setPoints(getTimeSeriesPoints(endOfPeriod, zoneOffset));
+		}
+
+		return timeSeriesDataServiceResponse;
 	}
 
-	protected TimeSeriesCorrectedData getTimeSeriesCorrectedData(boolean endOfPeriod, ZoneOffset zoneOffset) {
+	protected TimeSeriesCorrectedData getTimeSeriesCorrectedData(boolean endOfPeriod, ZoneOffset zoneOffset, boolean withPoints) {
 		TimeSeriesCorrectedData timeSeriesCorrectedData = new TimeSeriesCorrectedData();
-		timeSeriesCorrectedData.setPoints(Arrays.asList(getDvPoint1(endOfPeriod, zoneOffset),
-				getDvPoint2(endOfPeriod, zoneOffset), getDvPoint3(endOfPeriod, zoneOffset),
-				getDvPoint4(endOfPeriod, zoneOffset), getDvPoint5(endOfPeriod, zoneOffset)));
+		if (withPoints) {
+			timeSeriesCorrectedData.setPoints(Arrays.asList(getDvPoint1(endOfPeriod, zoneOffset),
+					getDvPoint2(endOfPeriod, zoneOffset), getDvPoint3(endOfPeriod, zoneOffset),
+					getDvPoint4(endOfPeriod, zoneOffset), getDvPoint5(endOfPeriod, zoneOffset)));
+		}
 		timeSeriesCorrectedData.setType("def");
 		timeSeriesCorrectedData.setUnit("myUnit");
 		if (endOfPeriod) {
@@ -1031,5 +1338,89 @@ public class ReportBuilderServiceTest {
 		timeSeriesCorrectedData.setGaps(getGapList());
 		timeSeriesCorrectedData.setGapTolerances(getGapTolerances());
 		return timeSeriesCorrectedData;
+	}
+
+	protected MinMaxData getMaxMinData(boolean endOfPeriod, ZoneOffset zoneOffset) {
+		Map<BigDecimal, List<MinMaxPoint>> points = Stream
+				.of(getMinMaxPoint5(endOfPeriod, zoneOffset), getMinMaxPoint4(endOfPeriod, zoneOffset),
+						getMinMaxPoint2(endOfPeriod, zoneOffset), getMinMaxPoint3(endOfPeriod, zoneOffset))
+				.collect(Collectors.groupingByConcurrent(MinMaxPoint::getValue));
+		return new MinMaxData(BigDecimal.valueOf(321.987), BigDecimal.valueOf(987.654), points);
+	}
+
+	protected List<FieldVisitDescription> getFieldVisitDecriptions() {
+		return Stream
+				.of(new FieldVisitDescription().setIdentifier("a"), new FieldVisitDescription().setIdentifier("b"))
+				.collect(Collectors.toList());
+	}
+
+	protected FieldVisitDataServiceResponse getFieldVisitDataServiceResponse(ArrayList<DischargeActivity> activities) {
+		return new FieldVisitDataServiceResponse().setDischargeActivities(activities);
+	}
+
+	protected ArrayList<DischargeActivity> getActivities() {
+		ArrayList<DischargeActivity> activities = Stream
+			.of(new DischargeActivity()
+					.setDischargeSummary(
+							new DischargeSummary().setMeasurementGrade(MeasurementGradeType.Good)
+									.setMeanGageHeight((QuantityWithDisplay) new QuantityWithDisplay()
+											.setUnit("meanGageHeightUnits").setDisplay("2.0090")
+											.setNumeric(Double.valueOf("2.0090")))
+									.setDischarge((QuantityWithDisplay) new QuantityWithDisplay()
+											.setUnit("dischargeUnits").setDisplay("20.0090")
+											.setNumeric(Double.valueOf("20.0090")))),
+				new DischargeActivity()
+					.setDischargeSummary(
+							new DischargeSummary().setMeasurementGrade(MeasurementGradeType.Excellent)
+									.setMeanGageHeight((QuantityWithDisplay) new QuantityWithDisplay()
+											.setUnit("meanGageHeightUnits").setDisplay("2.0090")
+											.setNumeric(Double.valueOf("2.0090")))
+									.setDischarge((QuantityWithDisplay) new QuantityWithDisplay()
+											.setUnit("dischargeUnits").setDisplay("20.0090")
+											.setNumeric(Double.valueOf("20.0090")))))
+			.collect(Collectors.toCollection(ArrayList::new));
+		return activities;
+	}
+
+	protected List<FieldVisitMeasurement> getFieldVisitMeasurements() {
+		return Stream.of(
+				new FieldVisitMeasurement(null, BigDecimal.valueOf(20.009), BigDecimal.valueOf(21.00945),
+						BigDecimal.valueOf(19.00855), null),
+				new FieldVisitMeasurement(null, BigDecimal.valueOf(20.009), BigDecimal.valueOf(20.40918),
+						BigDecimal.valueOf(19.60882), null),
+				new FieldVisitMeasurement(null, BigDecimal.valueOf(20.009), BigDecimal.valueOf(21.00945),
+						BigDecimal.valueOf(19.00855), null),
+				new FieldVisitMeasurement(null, BigDecimal.valueOf(20.009), BigDecimal.valueOf(20.40918),
+						BigDecimal.valueOf(19.60882), null))
+			.collect(Collectors.toList());
+	}
+
+	protected List<WaterLevelRecord> getGwLevels() {
+		return Stream.of(getWaterLevelRecord(123.456, nowInstant),
+				getWaterLevelRecord(122.334, nowInstant.minusSeconds(3600)))
+			.collect(Collectors.toList());
+	}
+	protected WaterLevelRecord getWaterLevelRecord(Double groundWaterLevel, Instant date) {
+		WaterLevelRecord waterLevelRecord = new WaterLevelRecord();
+		waterLevelRecord.setDate(date.atOffset(ZoneOffset.of("-6")));
+		waterLevelRecord.setGroundWaterLevel(BigDecimal.valueOf(groundWaterLevel));
+		waterLevelRecord.setSiteNumber("01010001");
+		waterLevelRecord.setTimeZone("CST");
+		return waterLevelRecord;
+	}
+
+	protected List<WaterQualitySampleRecord> getWaterQualityRecords() {
+		return Stream.of(getWaterQualityRecord(123.456, nowInstant),
+				getWaterQualityRecord(122.334, nowInstant.minusSeconds(3600)))
+			.collect(Collectors.toList());
+	}
+	protected WaterQualitySampleRecord getWaterQualityRecord(Double val, Instant date) {
+		WaterQualitySampleRecord waterQualitySampleRecord = new WaterQualitySampleRecord();
+		waterQualitySampleRecord.setSampleStartDateTime(date.atOffset(ZoneOffset.of("-6")));
+		WqValue wqValue = new WqValue();
+		wqValue.setValue(BigDecimal.valueOf(val));
+		waterQualitySampleRecord.setValue(wqValue);
+		waterQualitySampleRecord.setTimeZone("CST");
+		return waterQualitySampleRecord;
 	}
 }

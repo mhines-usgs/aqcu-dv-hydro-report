@@ -30,6 +30,10 @@ https://localhost:8880/aqcu-gateway/service/reports/dvhydrograph/?primaryTimeser
 
 https://localhost:8880/aqcu-gateway/service/reports/dvhydrograph/?primaryTimeseriesIdentifier=4d62d997afea458a8ca722d55a479f5c&firstStatDerivedIdentifier=aec5c04ce5e540469d6c7685da66e73b&secondStatDerivedIdentifier=&thirdStatDerivedIdentifier=&fourthStatDerivedIdentifier=&firstReferenceIdentifier=&secondReferenceIdentifier=&thirdReferenceIdentifier=&station=251457080395802&waterYear=2015&token=2ad71416-161d-494d-b98d-3460d6b1a940
 
+
+https://reporting-test.nwis.usgs.gov/timeseries-ws/service/reports/dvhydrograph/?primaryTimeseriesIdentifier=9461633ffc1d478fb8b566f64d325b62&firstStatDerivedIdentifier=dba053add97a4434b21616fbbd39d822&secondStatDerivedIdentifier=&thirdStatDerivedIdentifier=&fourthStatDerivedIdentifier=&firstReferenceIdentifier=&secondReferenceIdentifier=&thirdReferenceIdentifier=&station=01010000&lastMonths=1
+
+
 		//calculate inverted flag
 		result.setInverted(ParameterSpecService.isInvertedGwParam(result));
 		
