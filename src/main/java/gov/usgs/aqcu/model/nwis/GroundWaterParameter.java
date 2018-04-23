@@ -1,9 +1,10 @@
-package gov.usgs.aqcu.model;
+package gov.usgs.aqcu.model.nwis;
 
 import java.util.HashMap;
 import java.util.Map;
-//TODO
-public enum GroundWaterParameters {
+
+public enum GroundWaterParameter {
+
 	//Current set
 	AQ208("Water level, DTW MP", true, "M", null),
 	Wat_LVL_BLSD("WaterLevel, BelowLSD", true, "L", null),
@@ -20,6 +21,7 @@ public enum GroundWaterParameters {
 	AQ185("GW level, NMVD03", false, "S", "NMVD03"),
 	AQ186("GW level, PRVD02", false, "S", "PRVD02"),
 	AQ209("Water level, MSL", false, "S", "LMSL"),
+
 	//anticipated set (note the enum name might not be useable)
 	FAQ208("Water level, depth MP", true, "M", null),
 	FWat_LVL_BLSD("Water level, depth LSD", true, "L", null),
@@ -35,81 +37,45 @@ public enum GroundWaterParameters {
 	FAQ184("Elevation, GW, HILOCAL", false, "S", "LMSL"),
 	FAQ185("Elevation, GW, NMVD03", false, "S", "NMVD03"),
 	FAQ186("Elevation, GW, PRVD02", false, "S", "PRVD02"),
-	FAQ209("Elevation, GW, MSL", false, "S", "LMSL")
-	;
-	
+	FAQ209("Elevation, GW, MSL", false, "S", "LMSL");
+
 	private String displayName;
 	private boolean inverted;
 	private String gwLevEnt;
 	private String seaLevDatum;
-	
-	private static Map<String, GroundWaterParameters> displayNameMap; 
+
+	private static Map<String, GroundWaterParameter> displayNameMap; 
 	static {
 		displayNameMap = new HashMap<>();
-		for(GroundWaterParameters p : GroundWaterParameters.values()) {
+		for(GroundWaterParameter p : GroundWaterParameter.values()) {
 			displayNameMap.put(p.getDisplayName(), p);
 		}
 	}
-	
-	GroundWaterParameters(String displayName, boolean inverted, String gwLevEnt, String seaLevDatum) {
+
+	GroundWaterParameter(String displayName, boolean inverted, String gwLevEnt, String seaLevDatum) {
 		this.displayName = displayName;
 		this.inverted = inverted;
 		this.gwLevEnt = gwLevEnt;
 		this.seaLevDatum = seaLevDatum;
 	}
 
-	/**
-	 *
-	 * @return The display name
-	 */
 	public String getDisplayName() {
 		return displayName;
 	}
 
-	/**
-	 *
-	 * @return Whether or not the groundwater series is inverted
-	 */
 	public boolean isInverted() {
 		return inverted;
 	}
 
-	/**
-	 *
-	 * @return The groundwater LevEnt
-	 */
 	public String getGwLevEnt() {
 		return gwLevEnt;
 	}
 
-	/**
-	 *
-	 * @return The groundwater sea level datum
-	 */
 	public String getSeaLevDatum() {
 		return seaLevDatum;
 	}
-	
-	/**
-	 *
-	 * @param displayName The display name to use for fetching the associated GW parameters
-	 * @return The discovered ground water parameters
-	 */
-	public static GroundWaterParameters getByDisplayName(String displayName) {
+
+	public static GroundWaterParameter getByDisplayName(String displayName) {
 		return displayNameMap.get(displayName);
-	}
-	
-	/**
-	 *
-	 * @param prefix The prefix to search for
-	 * @return Wether or not any display name starts with the supplied prefix
-	 */
-	public static boolean anyDisplayStartsWith(String prefix) {
-		for(String s : displayNameMap.keySet()) {
-			if(s.startsWith(prefix)) {
-				return true;
-			}
-		}
-		return false;
 	}
 }

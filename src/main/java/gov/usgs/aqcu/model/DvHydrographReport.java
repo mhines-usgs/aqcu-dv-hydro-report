@@ -17,6 +17,7 @@ public class DvHydrographReport {
 	private List<FieldVisitMeasurement> fieldVisitMeasurements;
 	private TimeSeriesCorrectedData firstReferenceTimeSeries;
 	private TimeSeriesCorrectedData fourthStatDerived;
+	private List<WaterLevelRecord> gwlevel;
 	private List<Qualifier> primarySeriesQualifiers;
 	private List<Approval> primarySeriesApprovals;
 	private TimeSeriesCorrectedData secondReferenceTimeSeries;
@@ -25,6 +26,7 @@ public class DvHydrographReport {
 	private TimeSeriesCorrectedData thirdReferenceTimeSeries;
 	private TimeSeriesCorrectedData thirdStatDerived;
 	private String waterdataUrl;
+	private List<WaterQualitySampleRecord> waterQuality;
 
 	public TimeSeriesCorrectedData getFirstStatDerived() {
 		return firstStatDerived;
@@ -32,23 +34,29 @@ public class DvHydrographReport {
 	public void setFirstStatDerived(TimeSeriesCorrectedData firstStatDerived) {
 		this.firstStatDerived = firstStatDerived;
 	}
-	public TimeSeriesCorrectedData getSecondStatDerived() {
-		return secondStatDerived;
+	public MinMaxData getMaxMinData() {
+		return maxMinData;
 	}
-	public void setSecondStatDerived(TimeSeriesCorrectedData secondStatDerived) {
-		this.secondStatDerived = secondStatDerived;
+	public void setMaxMinData(MinMaxData maxMinData) {
+		this.maxMinData = maxMinData;
 	}
-	public TimeSeriesCorrectedData getThirdStatDerived() {
-		return thirdStatDerived;
+	public DvHydrographReportMetadata getReportMetadata() {
+		return reportMetadata;
 	}
-	public void setThirdStatDerived(TimeSeriesCorrectedData thirdStatDerived) {
-		this.thirdStatDerived = thirdStatDerived;
+	public void setReportMetadata(DvHydrographReportMetadata reportMetadata) {
+		this.reportMetadata = reportMetadata;
 	}
-	public TimeSeriesCorrectedData getFourthStatDerived() {
-		return fourthStatDerived;
+	public TimeSeriesCorrectedData getComparisonSeries() {
+		return comparisonSeries;
 	}
-	public void setFourthStatDerived(TimeSeriesCorrectedData fourthStatDerived) {
-		this.fourthStatDerived = fourthStatDerived;
+	public void setComparisonSeries(TimeSeriesCorrectedData comparisonSeries) {
+		this.comparisonSeries = comparisonSeries;
+	}
+	public List<FieldVisitMeasurement> getFieldVisitMeasurements() {
+		return fieldVisitMeasurements;
+	}
+	public void setFieldVisitMeasurements(List<FieldVisitMeasurement> fieldVisitMeasurements) {
+		this.fieldVisitMeasurements = fieldVisitMeasurements;
 	}
 	public TimeSeriesCorrectedData getFirstReferenceTimeSeries() {
 		return firstReferenceTimeSeries;
@@ -56,23 +64,17 @@ public class DvHydrographReport {
 	public void setFirstReferenceTimeSeries(TimeSeriesCorrectedData firstReferenceTimeSeries) {
 		this.firstReferenceTimeSeries = firstReferenceTimeSeries;
 	}
-	public TimeSeriesCorrectedData getSecondReferenceTimeSeries() {
-		return secondReferenceTimeSeries;
+	public TimeSeriesCorrectedData getFourthStatDerived() {
+		return fourthStatDerived;
 	}
-	public void setSecondReferenceTimeSeries(TimeSeriesCorrectedData secondReferenceTimeSeries) {
-		this.secondReferenceTimeSeries = secondReferenceTimeSeries;
+	public void setFourthStatDerived(TimeSeriesCorrectedData fourthStatDerived) {
+		this.fourthStatDerived = fourthStatDerived;
 	}
-	public TimeSeriesCorrectedData getThirdReferenceTimeSeries() {
-		return thirdReferenceTimeSeries;
+	public List<WaterLevelRecord> getGwlevel() {
+		return gwlevel;
 	}
-	public void setThirdReferenceTimeSeries(TimeSeriesCorrectedData thirdReferenceTimeSeries) {
-		this.thirdReferenceTimeSeries = thirdReferenceTimeSeries;
-	}
-	public TimeSeriesCorrectedData getComparisonSeries() {
-		return comparisonSeries;
-	}
-	public void setComparisonSeries(TimeSeriesCorrectedData comparisonSeries) {
-		this.comparisonSeries = comparisonSeries;
+	public void setGwlevel(List<WaterLevelRecord> gwlevel) {
+		this.gwlevel = gwlevel;
 	}
 	public List<Qualifier> getPrimarySeriesQualifiers() {
 		return primarySeriesQualifiers;
@@ -86,17 +88,17 @@ public class DvHydrographReport {
 	public void setPrimarySeriesApprovals(List<Approval> primarySeriesApprovals) {
 		this.primarySeriesApprovals = primarySeriesApprovals;
 	}
-	public List<FieldVisitMeasurement> getFieldVisitMeasurements() {
-		return fieldVisitMeasurements;
+	public TimeSeriesCorrectedData getSecondReferenceTimeSeries() {
+		return secondReferenceTimeSeries;
 	}
-	public void setFieldVisitMeasurements(List<FieldVisitMeasurement> fieldVisitMeasurements) {
-		this.fieldVisitMeasurements = fieldVisitMeasurements;
+	public void setSecondReferenceTimeSeries(TimeSeriesCorrectedData secondReferenceTimeSeries) {
+		this.secondReferenceTimeSeries = secondReferenceTimeSeries;
 	}
-	public DvHydrographReportMetadata getReportMetadata() {
-		return reportMetadata;
+	public TimeSeriesCorrectedData getSecondStatDerived() {
+		return secondStatDerived;
 	}
-	public void setReportMetadata(DvHydrographReportMetadata reportMetadata) {
-		this.reportMetadata = reportMetadata;
+	public void setSecondStatDerived(TimeSeriesCorrectedData secondStatDerived) {
+		this.secondStatDerived = secondStatDerived;
 	}
 	public String getSimsUrl() {
 		return simsUrl;
@@ -104,17 +106,28 @@ public class DvHydrographReport {
 	public void setSimsUrl(String simsUrl) {
 		this.simsUrl = simsUrl;
 	}
+	public TimeSeriesCorrectedData getThirdReferenceTimeSeries() {
+		return thirdReferenceTimeSeries;
+	}
+	public void setThirdReferenceTimeSeries(TimeSeriesCorrectedData thirdReferenceTimeSeries) {
+		this.thirdReferenceTimeSeries = thirdReferenceTimeSeries;
+	}
+	public TimeSeriesCorrectedData getThirdStatDerived() {
+		return thirdStatDerived;
+	}
+	public void setThirdStatDerived(TimeSeriesCorrectedData thirdStatDerived) {
+		this.thirdStatDerived = thirdStatDerived;
+	}
 	public String getWaterdataUrl() {
 		return waterdataUrl;
 	}
 	public void setWaterdataUrl(String waterdataUrl) {
 		this.waterdataUrl = waterdataUrl;
 	}
-	public MinMaxData getMaxMinData() {
-		return maxMinData;
+	public List<WaterQualitySampleRecord> getWaterQuality() {
+		return waterQuality;
 	}
-	public void setMaxMinData(MinMaxData maxMinData) {
-		this.maxMinData = maxMinData;
+	public void setWaterQuality(List<WaterQualitySampleRecord> waterQuality) {
+		this.waterQuality = waterQuality;
 	}
-
 }

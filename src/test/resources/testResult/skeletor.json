@@ -6,6 +6,7 @@
 	"fieldVisitMeasurements": null,
 	"firstReferenceTimeSeries": null,
 	"fourthStatDerived": null,
+	"gwlevel": null,
 	"primarySeriesQualifiers": null,
 	"primarySeriesApprovals": null,
 	"secondReferenceTimeSeries": null,
@@ -13,5 +14,6 @@
 	"simsUrl": null,
 	"thirdReferenceTimeSeries": null,
 	"thirdStatDerived": null,
-	"waterdataUrl": null
+	"waterdataUrl": null,
+	"waterQuality": null
 }
