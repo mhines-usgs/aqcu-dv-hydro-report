@@ -1,8 +1,10 @@
-package gov.usgs.aqcu.model;
+package gov.usgs.aqcu.model.nwis;
 
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import gov.usgs.aqcu.model.WaterQualitySampleRecord;
 
 /**
  * Simple wrapper to make deserialization of NWIS-RA responses easier

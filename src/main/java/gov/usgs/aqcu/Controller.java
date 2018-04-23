@@ -53,7 +53,7 @@ public class Controller {
 	String getRequestingUser() {
 //		CidaAuthAuthenticationToken auth = (CidaAuthAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
 //		return auth.getName();
-		return "unknown";
+		return "AQCU User";
 	}
 
 }

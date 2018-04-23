@@ -1,4 +1,4 @@
-package gov.usgs.aqcu.model;
+package gov.usgs.aqcu.model.nwis;
 
 import java.util.ArrayList;
 import java.util.List;

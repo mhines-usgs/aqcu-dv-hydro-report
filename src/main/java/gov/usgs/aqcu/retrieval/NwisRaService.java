@@ -13,26 +13,27 @@ import org.springframework.stereotype.Repository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gov.usgs.aqcu.client.NwisRaClient;
-import gov.usgs.aqcu.model.GroundWaterParameters;
-import gov.usgs.aqcu.model.ParameterRecord;
-import gov.usgs.aqcu.model.ParameterRecords;
 import gov.usgs.aqcu.model.WaterLevelRecord;
-import gov.usgs.aqcu.model.WaterLevelRecords;
 import gov.usgs.aqcu.model.WaterQualitySampleRecord;
-import gov.usgs.aqcu.model.WaterQualitySampleRecords;
+import gov.usgs.aqcu.model.nwis.GroundWaterParameter;
+import gov.usgs.aqcu.model.nwis.ParameterRecord;
+import gov.usgs.aqcu.model.nwis.ParameterRecords;
+import gov.usgs.aqcu.model.nwis.WaterLevelRecords;
+import gov.usgs.aqcu.model.nwis.WaterQualitySampleRecords;
 import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 
 @Repository
 public class NwisRaService {
 	private static final Logger LOG = LoggerFactory.getLogger(NwisRaService.class);
 
-	private static final String AQ_PARAMS_FILTER_VALUE = "AQUNIT"; //we will be matching on UNIT
-	private static final String AQ_NAME_PARAMS_FILTER_VALUE = "AQNAME"; //this is to get the AQ name
-	private static final String GW_LEV_COLUMN_GROUPS_TO_RETRIEVE = "WaterLevelDate,WaterLevelBelowLSDValue,WaterLevelAboveSeaLevelValue,WaterLevelBelowMPValue,WaterLevelMeta";
 	private static final DateTimeFormatter PARTIAL_DATA_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
-	private static final String QW_COLUMN_GROUPS_TO_RETRIEVE = "WQBySample";
 
 	private NwisRaClient nwisRaClient;
+
+	protected static final String AQ_PARAMS_FILTER_VALUE = "AQUNIT"; //we will be matching on UNIT
+	protected static final String AQ_NAME_PARAMS_FILTER_VALUE = "AQNAME"; //this is to get the AQ name
+	protected static final String GW_LEV_COLUMN_GROUPS_TO_RETRIEVE = "WaterLevelDate,WaterLevelBelowLSDValue,WaterLevelAboveSeaLevelValue,WaterLevelBelowMPValue,WaterLevelMeta";
+	protected static final String QW_COLUMN_GROUPS_TO_RETRIEVE = "WQBySample";
 
 	@Autowired
 	public NwisRaService(NwisRaClient nwisRaClient) {
@@ -49,23 +50,27 @@ public class NwisRaService {
 		return deseriealize(responseEntity.getBody(), ParameterRecords.class).getRecords();
 	}
 
-	public List<WaterLevelRecord> getGwLevels(DvHydrographRequestParameters requestParameters, String siteId, GroundWaterParameters gwParam, ZoneOffset zoneOffset) {
+	public List<WaterLevelRecord> getGwLevels(DvHydrographRequestParameters requestParameters, String siteId,
+			GroundWaterParameter gwParam, ZoneOffset zoneOffset) {
 		ResponseEntity<String> responseEntity = nwisRaClient.getWaterLevelRecords(siteId,
 				GW_LEV_COLUMN_GROUPS_TO_RETRIEVE, getPartialDateString(requestParameters, zoneOffset),
 				gwParam.getGwLevEnt(), gwParam.getSeaLevDatum());
 		return deseriealize(responseEntity.getBody(), WaterLevelRecords.class).getRecords();
 	}
 
-	public List<WaterQualitySampleRecord> getQwData(DvHydrographRequestParameters requestParameters, String siteId, String nwisPcode, ZoneOffset zoneOffset) {
-		ResponseEntity<String> responseEntity = nwisRaClient.getWaterQualitySampleRecords(siteId, QW_COLUMN_GROUPS_TO_RETRIEVE,
-				"true", "true", nwisPcode, nwisPcode, getPartialDateString(requestParameters, zoneOffset));
+	public List<WaterQualitySampleRecord> getQwData(DvHydrographRequestParameters requestParameters, String siteId,
+			String nwisPcode, ZoneOffset zoneOffset) {
+		ResponseEntity<String> responseEntity = nwisRaClient.getWaterQualitySampleRecords(siteId,
+				QW_COLUMN_GROUPS_TO_RETRIEVE, "true", "true", nwisPcode, nwisPcode,
+				getPartialDateString(requestParameters, zoneOffset));
 		return deseriealize(responseEntity.getBody(), WaterQualitySampleRecords.class).getRecords();
 	}
 
 	protected String getPartialDateString(DvHydrographRequestParameters requestParameters, ZoneOffset zoneOffset) {
-		//date range param needs to be of the form YYYYMMDD,YYYYMMDD
-		String dateRange = PARTIAL_DATA_FORMAT.withZone(zoneOffset).format(requestParameters.getStartInstant(zoneOffset)) + "," + 
-				PARTIAL_DATA_FORMAT.withZone(zoneOffset).format(requestParameters.getEndInstant(zoneOffset));
+		// date range param needs to be of the form YYYYMMDD,YYYYMMDD
+		String dateRange = PARTIAL_DATA_FORMAT.withZone(zoneOffset)
+				.format(requestParameters.getStartInstant(zoneOffset)) + ","
+				+ PARTIAL_DATA_FORMAT.withZone(zoneOffset).format(requestParameters.getEndInstant(zoneOffset));
 		return dateRange;
 	}
 

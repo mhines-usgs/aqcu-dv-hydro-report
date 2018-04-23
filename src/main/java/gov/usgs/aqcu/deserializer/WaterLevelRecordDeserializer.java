@@ -1,4 +1,4 @@
-package gov.usgs.aqcu.model;
+package gov.usgs.aqcu.deserializer;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -11,6 +11,9 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import gov.usgs.aqcu.model.WaterLevelRecord;
+import gov.usgs.aqcu.model.nwis.NwisRaTimeZones;
+
 /**
  * Customized JSON Deserializer for water level record JSON
  * 
@@ -21,9 +24,9 @@ public class WaterLevelRecordDeserializer extends JsonDeserializer<WaterLevelRec
 	@Override
 	public WaterLevelRecord deserialize(JsonParser jp, DeserializationContext ctxt)
 			throws IOException, JsonProcessingException {
-		
+
 		WaterLevelRecord wlRecord = new WaterLevelRecord();
-		
+
 		JsonNode node = jp.getCodec().readTree(jp);
 		wlRecord.setSiteNumber(node.get("SITE_NO").asText());
 		wlRecord.setTimeZone(node.get("LEV_TZ_CD").asText().trim());
@@ -41,7 +44,7 @@ public class WaterLevelRecordDeserializer extends JsonDeserializer<WaterLevelRec
 		String dateString = node.get("GW_LOCAL_LEV_DT").asText();
 		String timeString = node.get("GW_LOCAL_LEV_TM").asText();
 		NwisRaTimeZones utcOffset = wlRecord.getTimeZone();
-		
+
 		if(dateString != null && timeString != null && utcOffset != null){
 			OffsetDateTime tmpTime = OffsetDateTime.from(DateTimeFormatter.ofPattern("yyyyMMddHHmmX").parse(dateString+timeString+utcOffset.toOffsetString()));
 			wlRecord.setDate(tmpTime);

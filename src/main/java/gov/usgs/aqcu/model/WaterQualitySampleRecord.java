@@ -3,6 +3,9 @@ package gov.usgs.aqcu.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
+import gov.usgs.aqcu.deserializer.WaterQualitySampleRecordDeserializer;
+import gov.usgs.aqcu.model.nwis.NwisRaTimeZones;
+
 import java.time.OffsetDateTime;
 import java.time.temporal.Temporal;
 
@@ -43,7 +46,7 @@ public class WaterQualitySampleRecord {
 	public Temporal getSampleStartDateTime() {
 		return sampleStartDateTime;
 	}
-	
+
 	/**
 	 *
 	 * @return The record value
@@ -51,7 +54,7 @@ public class WaterQualitySampleRecord {
 	public WqValue getValue() {
 		return value;
 	}
-	
+
 	/**
 	 *
 	 * @return The record time zone
@@ -91,7 +94,7 @@ public class WaterQualitySampleRecord {
 	public void setValue(WqValue value) {
 		this.value = value;
 	}
-	
+
 	/**
 	 *
 	 * @param timeZone The record time zone to set

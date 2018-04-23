@@ -1,9 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-package gov.usgs.aqcu.model;
+package gov.usgs.aqcu.model.nwis;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -98,7 +93,7 @@ public enum NwisRaTimeZones {
 	private int utcMinutesOffset;
 
 	private String timeZoneCode;
-	
+
 	private static Map<String, NwisRaTimeZones> timeZoneMap;
 		static {
 		timeZoneMap = new HashMap<>();
@@ -106,13 +101,13 @@ public enum NwisRaTimeZones {
 			timeZoneMap.put(z.getTimeZoneCode(), z);
 		}
 	}
-		
+
 	NwisRaTimeZones(String timeZoneCode, int utcHoursOffset, int utcMinutesOffset){
 		this.utcHoursOffset = utcHoursOffset;
 		this.utcMinutesOffset = utcMinutesOffset;
 		this.timeZoneCode = timeZoneCode;
 	}
-	
+
 	/**
 	 *
 	 * @param timeZoneCode The timezone code to search with
@@ -121,7 +116,7 @@ public enum NwisRaTimeZones {
 	public static NwisRaTimeZones getByTimeZoneCode(String timeZoneCode){
 		return timeZoneMap.get(timeZoneCode);
 	}
-	
+
 	/**
 	 *
 	 * @return The timezone code
@@ -129,7 +124,7 @@ public enum NwisRaTimeZones {
 	public String getTimeZoneCode(){
 		return timeZoneCode;
 	}
-	
+
 	/**
 	 *
 	 * @return The UTC hours offset
@@ -137,7 +132,7 @@ public enum NwisRaTimeZones {
 	public int getUtcHoursOffset() {
 		return utcHoursOffset;
 	}
-	
+
 	/**
 	 *
 	 * @return The UTC minutes offset
@@ -145,31 +140,28 @@ public enum NwisRaTimeZones {
 	public int getUtcMinutesOffset(){
 		return utcMinutesOffset;
 	}
-	
+
 	/**
 	 *
 	 * @return Converts the UTC hours and minutes offset to an offset string
 	 */
 	public String toOffsetString() {
 		String sign = "+";
-		
+
 		if(this.utcHoursOffset < 0) {
 			sign = "-";
 		}
-		
+
 		String hour = String.valueOf(Math.abs(this.utcHoursOffset));
 		if(hour.length() == 1) {
 			hour = "0" + hour;
 		}
-		
 
-		
 		String minutes = String.valueOf(this.utcMinutesOffset);
 		if(minutes.length() == 1) {
 			minutes = "0" + minutes;
 		}
-		
+
 		return sign + hour + minutes;
 	}
 }
-

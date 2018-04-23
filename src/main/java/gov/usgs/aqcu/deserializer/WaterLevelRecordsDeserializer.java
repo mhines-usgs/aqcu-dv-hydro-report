@@ -1,4 +1,4 @@
-package gov.usgs.aqcu.model;
+package gov.usgs.aqcu.deserializer;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,13 +14,16 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import gov.usgs.aqcu.model.WaterLevelRecord;
+import gov.usgs.aqcu.model.nwis.WaterLevelRecords;
+
 /**
  *
  * @author zmoore
  */
 public class WaterLevelRecordsDeserializer extends JsonDeserializer<WaterLevelRecords> {
 	private static final Logger log = LoggerFactory.getLogger(WaterLevelRecordsDeserializer.class);
-	
+
 	@Override
 	public WaterLevelRecords deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
 		WaterLevelRecords returnObj = new WaterLevelRecords();
@@ -39,7 +42,7 @@ public class WaterLevelRecordsDeserializer extends JsonDeserializer<WaterLevelRe
 				}
 			}
 		}
-		
+
 		returnObj.setRecords(recordList);
 		return returnObj;
 	}

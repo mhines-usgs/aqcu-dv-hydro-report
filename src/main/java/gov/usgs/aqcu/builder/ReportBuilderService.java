@@ -10,8 +10,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,13 +29,13 @@ import gov.usgs.aqcu.model.DvHydrographPoint;
 import gov.usgs.aqcu.model.DvHydrographReport;
 import gov.usgs.aqcu.model.DvHydrographReportMetadata;
 import gov.usgs.aqcu.model.FieldVisitMeasurement;
-import gov.usgs.aqcu.model.GroundWaterParameters;
 import gov.usgs.aqcu.model.InstantRange;
 import gov.usgs.aqcu.model.MeasurementGrade;
 import gov.usgs.aqcu.model.MinMaxData;
 import gov.usgs.aqcu.model.MinMaxPoint;
-import gov.usgs.aqcu.model.ParameterRecord;
 import gov.usgs.aqcu.model.TimeSeriesCorrectedData;
+import gov.usgs.aqcu.model.nwis.GroundWaterParameter;
+import gov.usgs.aqcu.model.nwis.ParameterRecord;
 import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 import gov.usgs.aqcu.retrieval.FieldVisitDataService;
 import gov.usgs.aqcu.retrieval.FieldVisitDescriptionService;
@@ -50,10 +48,10 @@ import gov.usgs.aqcu.retrieval.TimeSeriesDescriptionService;
 import gov.usgs.aqcu.util.AqcuTimeUtils;
 import gov.usgs.aqcu.util.BigDecimalSummaryStatistics;
 import gov.usgs.aqcu.util.DoubleWithDisplayUtil;
+import gov.usgs.aqcu.util.TimeSeriesUtils;
 
 @Service
 public class ReportBuilderService {
-	private static final Logger LOG = LoggerFactory.getLogger(ReportBuilderService.class);
 
 	protected static final String ESTIMATED_QUALIFIER_VALUE = "ESTIMATED";
 	protected static final String VOLUMETRIC_FLOW_UNIT_GROUP_VALUE = "Volumetric Flow";
@@ -100,13 +98,13 @@ public class ReportBuilderService {
 		Map<String, ParameterMetadata> parameterMetadata = parameterListService.getParameterMetadata();
 
 		TimeSeriesDescription primarySeriesDescription = timeSeriesDescriptions.get(requestParameters.getPrimaryTimeseriesIdentifier());
-		ZoneOffset primarySeriesZoneOffset = getZoneOffset(primarySeriesDescription);
+		ZoneOffset primarySeriesZoneOffset = TimeSeriesUtils.getZoneOffset(primarySeriesDescription);
 		String primarySeriesParameter = primarySeriesDescription.getParameter().toString();
-		GroundWaterParameters primarySeriesGwParam = GroundWaterParameters.getByDisplayName(primarySeriesParameter);
+		GroundWaterParameter primarySeriesGwParam = GroundWaterParameter.getByDisplayName(primarySeriesParameter);
 
 		TimeSeriesDataServiceResponse primarySeriesDataResponse = timeSeriesDataCorrectedService.get(
 				requestParameters.getPrimaryTimeseriesIdentifier(), requestParameters,
-				isDailyTimeSeries(primarySeriesDescription),
+				TimeSeriesUtils.isDailyTimeSeries(primarySeriesDescription),
 				primarySeriesZoneOffset);
 
 		dvHydroReport.setReportMetadata(createDvHydroMetadata(requestParameters, timeSeriesDescriptions,
@@ -202,40 +200,14 @@ public class ReportBuilderService {
 		return pcode;
 	}
 
-	protected boolean isDailyTimeSeries(TimeSeriesDescription timeSeriesDescription) {
-		return timeSeriesDescription != null
-				&& "Daily".equalsIgnoreCase(timeSeriesDescription.getComputationPeriodIdentifier());
-	}
-
-	protected ZoneOffset getZoneOffset(TimeSeriesDescription timeSeriesDescription) {
-		// Default to UTC
-		ZoneOffset zoneOffset = ZoneOffset.UTC;
-		Double utcOffset = null;
-
-		try {
-			utcOffset = timeSeriesDescription == null ? 0 : timeSeriesDescription.getUtcOffset();
-			Double minutes = utcOffset % 1;
-			if (minutes != 0) {
-				Double hours = utcOffset - minutes;
-				zoneOffset = ZoneOffset.ofHoursMinutes(hours.intValue(), (int) Math.round(minutes * 100));
-			} else {
-				zoneOffset = ZoneOffset.ofHours(utcOffset.intValue());
-			}
-		} catch (Exception e) {
-			LOG.info("Error converting utcOffset({}) to ZoneOffset", utcOffset);
-		}
-
-		return zoneOffset;
-	}
-
 	protected TimeSeriesCorrectedData buildTimeSeriesCorrectedData(
 			Map<String, TimeSeriesDescription> timeSeriesDescriptions, String timeSeriesIdentifier,
 			DvHydrographRequestParameters requestParameters, Map<String, ParameterMetadata> parameterMetadata) {
 		TimeSeriesCorrectedData timeSeriesCorrectedData = null;
 
 		if (timeSeriesDescriptions != null && timeSeriesDescriptions.containsKey(timeSeriesIdentifier)) {
-			boolean isDaily = isDailyTimeSeries(timeSeriesDescriptions.get(timeSeriesIdentifier));
-			ZoneOffset zoneOffset = getZoneOffset(timeSeriesDescriptions.get(timeSeriesIdentifier));
+			boolean isDaily = TimeSeriesUtils.isDailyTimeSeries(timeSeriesDescriptions.get(timeSeriesIdentifier));
+			ZoneOffset zoneOffset = TimeSeriesUtils.getZoneOffset(timeSeriesDescriptions.get(timeSeriesIdentifier));
 			TimeSeriesDataServiceResponse timeSeriesDataServiceResponse = timeSeriesDataCorrectedService
 					.get(timeSeriesIdentifier, requestParameters, isDaily, zoneOffset);
 
@@ -252,14 +224,14 @@ public class ReportBuilderService {
 			Map<String, TimeSeriesDescription> timeSeriesDescriptions,
 			TimeSeriesDescription primarySeriesDescription,
 			TimeSeriesDataServiceResponse primarySeriesDataResponse, String requestingUser,
-			GroundWaterParameters gwParam) {
+			GroundWaterParameter gwParam) {
 		DvHydrographReportMetadata metadata = new DvHydrographReportMetadata();
 
 		metadata.setExcludeDiscrete(requestParameters.isExcludeDiscrete());
 		metadata.setExcludeMinMax(requestParameters.isExcludeMinMax());
 		metadata.setExcludeZeroNegative(requestParameters.isExcludeZeroNegative());
 
-		metadata.setTimezone(getTimezone(primarySeriesDescription.getUtcOffset()));
+		metadata.setTimezone(AqcuTimeUtils.getTimezone(primarySeriesDescription.getUtcOffset()));
 		// Repgen just pulls the date for the headings, so we need to be sure and get
 		// the "correct" date - it's internal filtering is potentially slightly skewed
 		// by this.
@@ -310,21 +282,9 @@ public class ReportBuilderService {
 		metadata.setStationName(locationDescription.getName());
 		metadata.setStationId(locationDescription.getIdentifier());
 
-		metadata.setInverted(null != gwParam);
+		metadata.setInverted(gwParam != null && gwParam.isInverted());
 
 		return metadata;
-	}
-
-	protected String getTimezone(Double offset) {
-		//TODO - move to framework?
-		StringBuilder timezone = new StringBuilder("Etc/GMT");
-		if (offset <= 0) {
-			timezone.append("+");
-		} else {
-			timezone.append("-");
-		}
-		timezone.append(Math.abs(offset.intValue()));
-		return timezone.toString();
 	}
 
 	protected List<FieldVisitMeasurement> buildFieldVisitMeasurements(DvHydrographRequestParameters requestParameters,
@@ -414,7 +374,6 @@ public class ReportBuilderService {
 		}
 
 		if (timeSeriesDataServiceResponse.getQualifiers() != null) {
-			// TODO? !getEstimatedPeriods.isEmpty()) {
 			timeSeriesCorrectedData
 					.setEstimatedPeriods(getEstimatedPeriods(timeSeriesDataServiceResponse.getQualifiers()));
 		}

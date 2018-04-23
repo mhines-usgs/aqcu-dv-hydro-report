@@ -65,16 +65,16 @@ import gov.usgs.aqcu.model.DvHydrographPoint;
 import gov.usgs.aqcu.model.DvHydrographReport;
 import gov.usgs.aqcu.model.DvHydrographReportMetadata;
 import gov.usgs.aqcu.model.FieldVisitMeasurement;
-import gov.usgs.aqcu.model.GroundWaterParameters;
 import gov.usgs.aqcu.model.InstantRange;
 import gov.usgs.aqcu.model.MeasurementGrade;
 import gov.usgs.aqcu.model.MinMaxData;
 import gov.usgs.aqcu.model.MinMaxPoint;
-import gov.usgs.aqcu.model.ParameterRecord;
 import gov.usgs.aqcu.model.TimeSeriesCorrectedData;
 import gov.usgs.aqcu.model.WaterLevelRecord;
 import gov.usgs.aqcu.model.WaterQualitySampleRecord;
 import gov.usgs.aqcu.model.WqValue;
+import gov.usgs.aqcu.model.nwis.GroundWaterParameter;
+import gov.usgs.aqcu.model.nwis.ParameterRecord;
 import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 import gov.usgs.aqcu.retrieval.FieldVisitDataService;
 import gov.usgs.aqcu.retrieval.FieldVisitDescriptionService;
@@ -161,7 +161,7 @@ public class ReportBuilderServiceTest {
 		verify(fieldVisitDataService, times(2)).get(anyString());
 		verify(fieldVisitDescriptionService).getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class));
 
-		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameters.class), any(ZoneOffset.class));
+		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameter.class), any(ZoneOffset.class));
 		verify(nwisRaService, never()).getQwData(any(DvHydrographRequestParameters.class), anyString(), anyString(), any(ZoneOffset.class));
 		verify(nwisRaService, never()).getAqParameterNames();
 		verify(nwisRaService, never()).getAqParameterUnits();
@@ -201,7 +201,7 @@ public class ReportBuilderServiceTest {
 		verify(fieldVisitDataService, never()).get(anyString());
 		verify(fieldVisitDescriptionService, never()).getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class));
 
-		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameters.class), any(ZoneOffset.class));
+		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameter.class), any(ZoneOffset.class));
 		verify(nwisRaService, never()).getQwData(any(DvHydrographRequestParameters.class), anyString(), anyString(), any(ZoneOffset.class));
 		verify(nwisRaService, never()).getAqParameterNames();
 		verify(nwisRaService, never()).getAqParameterUnits();
@@ -221,7 +221,7 @@ public class ReportBuilderServiceTest {
 		given(dataGapListBuilderService.buildGapList(anyList(), any(boolean.class), any(ZoneOffset.class)))
 			.willReturn(getGapList());
 		given(qualifierLookupService.getByQualifierList(anyList())).willReturn(metadataMap);
-		given(nwisRaService.getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameters.class), any(ZoneOffset.class)))
+		given(nwisRaService.getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameter.class), any(ZoneOffset.class)))
 			.willReturn(getGwLevels());
 
 		DvHydrographRequestParameters requestParameters = new DvHydrographRequestParameters();
@@ -243,7 +243,7 @@ public class ReportBuilderServiceTest {
 		verify(fieldVisitDataService, never()).get(anyString());
 		verify(fieldVisitDescriptionService, never()).getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class));
 
-		verify(nwisRaService).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameters.class), any(ZoneOffset.class));
+		verify(nwisRaService).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameter.class), any(ZoneOffset.class));
 		verify(nwisRaService, never()).getQwData(any(DvHydrographRequestParameters.class), anyString(), anyString(), any(ZoneOffset.class));
 		verify(nwisRaService, never()).getAqParameterNames();
 		verify(nwisRaService, never()).getAqParameterUnits();
@@ -283,7 +283,7 @@ public class ReportBuilderServiceTest {
 		verify(fieldVisitDataService, never()).get(anyString());
 		verify(fieldVisitDescriptionService, never()).getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class));
 
-		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameters.class), any(ZoneOffset.class));
+		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameter.class), any(ZoneOffset.class));
 		verify(nwisRaService, never()).getQwData(any(DvHydrographRequestParameters.class), anyString(), anyString(), any(ZoneOffset.class));
 		verify(nwisRaService, never()).getAqParameterNames();
 		verify(nwisRaService, never()).getAqParameterUnits();
@@ -335,7 +335,7 @@ public class ReportBuilderServiceTest {
 		verify(fieldVisitDataService, never()).get(anyString());
 		verify(fieldVisitDescriptionService, never()).getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class));
 
-		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameters.class), any(ZoneOffset.class));
+		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameter.class), any(ZoneOffset.class));
 		verify(nwisRaService, never()).getQwData(any(DvHydrographRequestParameters.class), anyString(), anyString(), any(ZoneOffset.class));
 		verify(nwisRaService).getAqParameterNames();
 		verify(nwisRaService, never()).getAqParameterUnits();
@@ -387,7 +387,7 @@ public class ReportBuilderServiceTest {
 		verify(fieldVisitDataService, never()).get(anyString());
 		verify(fieldVisitDescriptionService, never()).getDescriptions(anyString(), any(ZoneOffset.class), any(DvHydrographRequestParameters.class));
 
-		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameters.class), any(ZoneOffset.class));
+		verify(nwisRaService, never()).getGwLevels(any(DvHydrographRequestParameters.class), anyString(), any(GroundWaterParameter.class), any(ZoneOffset.class));
 		verify(nwisRaService).getQwData(any(DvHydrographRequestParameters.class), anyString(), anyString(), any(ZoneOffset.class));
 		verify(nwisRaService).getAqParameterNames();
 		verify(nwisRaService).getAqParameterUnits();
@@ -456,42 +456,6 @@ public class ReportBuilderServiceTest {
 	}
 
 	@Test
-	public void isDailyTimeSeriesNullTest() {
-		assertFalse(service.isDailyTimeSeries(null));
-		assertFalse(service.isDailyTimeSeries(new TimeSeriesDescription()));
-	}
-
-	@Test
-	public void isDailyTimeSeriesTrueTest() {
-		assertTrue(service.isDailyTimeSeries(new TimeSeriesDescription().setComputationPeriodIdentifier("DaiLY")));
-	}
-
-	@Test
-	public void isDailyTimeSeriesFalseTest() {
-		assertFalse(service.isDailyTimeSeries(new TimeSeriesDescription().setComputationPeriodIdentifier("NEVER")));
-	}
-
-	@Test
-	public void getZoneOffsetNullTest() {
-		assertEquals(ZoneOffset.UTC, service.getZoneOffset(null));
-	}
-
-	@Test
-	public void getZoneOffsetMinutesTest() {
-		assertEquals(ZoneOffset.ofHoursMinutes(-5, -30), service.getZoneOffset(new TimeSeriesDescription().setUtcOffset(-5.3)));
-	}
-
-	@Test
-	public void getZoneOffsetHoursTest() {
-		assertEquals(ZoneOffset.ofHours(6), service.getZoneOffset(new TimeSeriesDescription().setUtcOffset(6.0)));
-	}
-
-	@Test
-	public void getZoneOffsetEatExceptionTest() {
-		assertEquals(ZoneOffset.UTC, service.getZoneOffset(new TimeSeriesDescription().setUtcOffset(24.0)));
-	}
-
-	@Test
 	public void buildTimeSeriesCorrectedDataNullTest() {
 		assertNull(service.buildTimeSeriesCorrectedData(null, null, null, null));
 		assertNull(service.buildTimeSeriesCorrectedData(new HashMap<String, TimeSeriesDescription>(), null, null, null));
@@ -535,7 +499,7 @@ public class ReportBuilderServiceTest {
 		given(qualifierLookupService.getByQualifierList(anyList())).willReturn(metadataMap);
 		TimeSeriesDataServiceResponse primarySeriesDataResponse = new TimeSeriesDataServiceResponse()
 				.setQualifiers(new ArrayList<Qualifier>());
-		GroundWaterParameters gwParam = GroundWaterParameters.FWat_LVL_BLSD;
+		GroundWaterParameter gwParam = GroundWaterParameter.FWat_LVL_BLSD;
 		DvHydrographReportMetadata actual = service.createDvHydroMetadata(buildRequestParameters(),
 				buildTimeSeriesDescriptions(), buildPrimarySeriesDescription(), primarySeriesDataResponse, "testUser",
 				gwParam);
@@ -551,7 +515,25 @@ public class ReportBuilderServiceTest {
 		given(qualifierLookupService.getByQualifierList(anyList())).willReturn(metadataMap);
 		TimeSeriesDataServiceResponse primarySeriesDataResponse = new TimeSeriesDataServiceResponse()
 				.setQualifiers(new ArrayList<Qualifier>());
-		GroundWaterParameters gwParam = null;
+		GroundWaterParameter gwParam = GroundWaterParameter.AQ209;
+		DvHydrographReportMetadata actual = service.createDvHydroMetadata(buildRequestParameters(),
+				buildTimeSeriesDescriptions(), buildPrimarySeriesDescription(), primarySeriesDataResponse, "testUser",
+				gwParam);
+
+		DvHydrographReportMetadata expected = buildFirstExpectedDvHydroMetadata();
+		expected.setInverted(false);
+		assertThat(actual, samePropertyValuesAs(expected));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void createDvHydroMetadataThirdTest() {
+		given(locationDescriptionService.getByLocationIdentifier(anyString()))
+			.willReturn(new LocationDescription().setIdentifier("0010010000").setName("monitoringLocation"));
+		given(qualifierLookupService.getByQualifierList(anyList())).willReturn(metadataMap);
+		TimeSeriesDataServiceResponse primarySeriesDataResponse = new TimeSeriesDataServiceResponse()
+				.setQualifiers(new ArrayList<Qualifier>());
+		GroundWaterParameter gwParam = null;
 		DvHydrographRequestParameters requestParmeters = buildRequestParameters();
 		requestParmeters.setExcludeDiscrete(true);
 		requestParmeters.setExcludeMinMax(true);
@@ -561,18 +543,7 @@ public class ReportBuilderServiceTest {
 						primarySeriesDataResponse, "testUser",
 				gwParam);
 
-		assertThat(actual, samePropertyValuesAs(buildSecondExpectedDvHydroMetadata()));
-	}
-
-	@Test
-	public void getTimezoneMinusTest() {
-		assertEquals("Etc/GMT+4", service.getTimezone(Double.parseDouble("-4")));
-		assertEquals("Etc/GMT+0", service.getTimezone(Double.parseDouble("0")));
-	}
-
-	@Test
-	public void getTimezonePlusTest() {
-		assertEquals("Etc/GMT-4", service.getTimezone(Double.parseDouble("4")));
+		assertThat(actual, samePropertyValuesAs(buildThirdExpectedDvHydroMetadata()));
 	}
 
 	@Test
@@ -1005,7 +976,7 @@ public class ReportBuilderServiceTest {
 		return expected;
 	}
 
-	protected DvHydrographReportMetadata buildSecondExpectedDvHydroMetadata() {
+	protected DvHydrographReportMetadata buildThirdExpectedDvHydroMetadata() {
 		DvHydrographReportMetadata expected = new DvHydrographReportMetadata();
 		expected.setTimezone("Etc/GMT-4");
 		expected.setStartDate(REPORT_START_INSTANT);

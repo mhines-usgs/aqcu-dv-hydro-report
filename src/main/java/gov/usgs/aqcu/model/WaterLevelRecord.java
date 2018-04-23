@@ -6,12 +6,15 @@ import java.time.OffsetDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
+import gov.usgs.aqcu.deserializer.WaterLevelRecordDeserializer;
+import gov.usgs.aqcu.model.nwis.NwisRaTimeZones;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonDeserialize(using = WaterLevelRecordDeserializer.class)
 public class WaterLevelRecord {
 	private String siteNumber;
 	private BigDecimal groundWaterLevel;
-	private OffsetDateTime recordDateTime; //TODO may want to deserialize into Date object
+	private OffsetDateTime recordDateTime;
 	private NwisRaTimeZones timeZone;
 
 	public String getSiteNumber() {
