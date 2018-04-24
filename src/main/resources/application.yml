@@ -13,6 +13,10 @@ aquarius:
     user: ${aquariusServiceUser}
     password: ${aquariusServicePassword}
 
+nwis-ra:
+  service:
+    endpoint: ${nwisRaServiceEndpoint}
+
 sims:
   base:
     url: ${simsBaseUrl}
@@ -34,11 +38,6 @@ javaToR:
   ribbon:
     listOfServers: ${javaToRServerList}
     IsSecure: ${javaToRIsSecure:true}
-
-nwisRa:
-  ribbon:
-    listOfServers: ${nwisRaServerList}
-    IsSecure: ${nwisRaIsSecure:true}
 
 eureka:
   client:
