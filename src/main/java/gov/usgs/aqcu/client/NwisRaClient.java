@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name="nwisRa", url="${nwis-ra.service.url}")
+@FeignClient(name="nwisRa", url="${nwis-ra.service.endpoint}")
 public interface NwisRaClient {
 
 	@RequestMapping(method=RequestMethod.GET, value="/data/view/parameters/json", consumes="application/json")
@@ -20,7 +20,7 @@ public interface NwisRaClient {
 			@RequestParam("groundwater.lev_ent_cd") String gwLevEnt,
 			@RequestParam("groundwater.sl_datum_cd") String seaLevelDatum);
 
-	@RequestMapping(method=RequestMethod.GET, value="report/WaterQualityBySample/json", consumes="application/json")
+	@RequestMapping(method=RequestMethod.GET, value="/report/WaterQualityBySample/json", consumes="application/json")
 	ResponseEntity<String> getWaterQualitySampleRecords(
 			@RequestParam("sitefile.site_no.like.varchar.trim") String siteId,
 			@RequestParam("columnGroups") String columnGroups,
