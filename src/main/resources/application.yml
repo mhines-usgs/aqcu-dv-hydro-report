@@ -17,6 +17,10 @@ nwis-ra:
   service:
     endpoint: ${nwisRaServiceEndpoint}
 
+javaToR:
+  service:
+    endpoint: ${javaToRServiceEndpoint}
+
 sims:
   base:
     url: ${simsBaseUrl}
@@ -33,11 +37,6 @@ security:
 management:
   security:
     enabled: false
-
-javaToR:
-  ribbon:
-    listOfServers: ${javaToRServerList}
-    IsSecure: ${javaToRIsSecure:true}
 
 eureka:
   client:
