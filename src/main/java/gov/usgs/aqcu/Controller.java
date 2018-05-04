@@ -5,7 +5,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,7 +16,6 @@ import gov.usgs.aqcu.builder.ReportBuilderService;
 import gov.usgs.aqcu.client.JavaToRClient;
 import gov.usgs.aqcu.model.DvHydrographReport;
 import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
-import gov.usgs.aqcu.security.CidaAuthAuthenticationToken;
 
 @RestController
 @RequestMapping("/dvhydro")
