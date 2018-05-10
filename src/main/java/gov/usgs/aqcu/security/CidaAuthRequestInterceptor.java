@@ -11,8 +11,9 @@ public class CidaAuthRequestInterceptor implements RequestInterceptor {
 
 	@Override
 	public void apply(RequestTemplate template) {
-		CidaAuthAuthenticationToken auth = (CidaAuthAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
-		template.header(CidaAuthTokenSecurityFilter.AUTHORIZATION_HEADER, CidaAuthTokenSecurityFilter.AUTH_BEARER_STRING + auth.getToken());
+		if(SecurityContextHolder.getContext().getAuthentication() instanceof CidaAuthAuthenticationToken) {
+			CidaAuthAuthenticationToken auth = (CidaAuthAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+			template.header(CidaAuthTokenSecurityFilter.AUTHORIZATION_HEADER, CidaAuthTokenSecurityFilter.AUTH_BEARER_STRING + auth.getToken());
+		}
 	}
-
 }
