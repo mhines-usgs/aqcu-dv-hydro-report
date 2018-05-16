@@ -48,22 +48,20 @@ feign:
   hystrix:
     enabled: true
 
-ribbon:
-  MaxAutoRetries: ${ribbonMaxAutoRetries}
-  MaxAutoRetriesNextServer: 0
-  ConnectTimeout: ${ribbonConnectTimeout}
-  ReadTimeout: ${ribbonReadTimeout}
-  OkToRetryOnAllOperations: true
-
 hystrix:
   shareSecurityContext: true
   command:
     default:
       execution:
         isolation:
-          strategy: SEMAPHORE
+          strategy: THREAD
           thread:
             timeoutInMilliseconds: ${hystrixThreadTimeout}
+  threadpool:
+    default:
+      maxQueueSize: ${hystrixMaxQueueSize:200}
+      queueSizeRejectionThreshold: ${hystrixMaxQueueSize:200}
+      coreSize: ${hystrixThreadPoolSize:10}
 
 spring:
   profiles:
