@@ -49,8 +49,9 @@ public class Controller {
 	}
 
 	String getRequestingUser() {
-		//Pull Requesting User From SecurityContext
-		return "testUser";
+//		CidaAuthAuthenticationToken auth = (CidaAuthAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+//		return auth.getName();
+		return "AQCU User";
 	}
 
 }
