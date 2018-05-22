@@ -20,7 +20,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
-import gov.usgs.aqcu.parameter.RequestParameters;
+import gov.usgs.aqcu.parameter.ReportRequestParameters;
 
 public class DvHydroRequestParametersValidationTest {
 
@@ -49,7 +49,7 @@ public class DvHydroRequestParametersValidationTest {
 
 	@Test
 	public void emptyRequestParameters() {
-		Set<ConstraintViolation<RequestParameters>> validationErrors = validator.validate(params);
+		Set<ConstraintViolation<ReportRequestParameters>> validationErrors = validator.validate(params);
 		assertEquals(1, validationErrors.size());
 
 		assertValidationResults(validationErrors,
@@ -60,11 +60,11 @@ public class DvHydroRequestParametersValidationTest {
 	@Test
 	public void goodParameters() {
 		params.setFirstStatDerivedIdentifier("a");
-		Set<ConstraintViolation<RequestParameters>> validationErrors = validator.validate(params);
+		Set<ConstraintViolation<ReportRequestParameters>> validationErrors = validator.validate(params);
 		assertTrue(validationErrors.isEmpty());
 	}
 
-	public void assertValidationResults(Set<ConstraintViolation<RequestParameters>> actual, String expected) {
+	public void assertValidationResults(Set<ConstraintViolation<ReportRequestParameters>> actual, String expected) {
 		List<String> actualStrings = actual
 				.stream()
 				.map(x -> String.join(":", x.getPropertyPath().toString(), x.getMessage()))
