@@ -39,7 +39,7 @@ import gov.usgs.aqcu.model.nwis.ParameterRecord;
 import gov.usgs.aqcu.parameter.DvHydrographRequestParameters;
 import gov.usgs.aqcu.retrieval.FieldVisitDataService;
 import gov.usgs.aqcu.retrieval.FieldVisitDescriptionService;
-import gov.usgs.aqcu.retrieval.LocationDescriptionService;
+import gov.usgs.aqcu.retrieval.LocationDescriptionListService;
 import gov.usgs.aqcu.retrieval.NwisRaService;
 import gov.usgs.aqcu.retrieval.ParameterListService;
 import gov.usgs.aqcu.retrieval.QualifierLookupService;
@@ -60,7 +60,7 @@ public class ReportBuilderService {
 	private DataGapListBuilderService dataGapListBuilderService;
 	private FieldVisitDataService fieldVisitDataService;
 	private FieldVisitDescriptionService fieldVisitDescriptionService;
-	private LocationDescriptionService locationDescriptionService;
+	private LocationDescriptionListService locationDescriptionListService;
 	private NwisRaService nwisRaService;
 	private ParameterListService parameterListService;
 	private QualifierLookupService qualifierLookupService;
@@ -75,14 +75,14 @@ public class ReportBuilderService {
 	@Autowired
 	public ReportBuilderService(DataGapListBuilderService dataGapListBuilderService,
 			FieldVisitDataService fieldVisitDataService, FieldVisitDescriptionService fieldVisitDescriptionService,
-			LocationDescriptionService locationDescriptionService, NwisRaService nwisRaService,
+			LocationDescriptionListService locationDescriptionListService, NwisRaService nwisRaService,
 			ParameterListService parameterListService, QualifierLookupService qualifierLookupService,
 			TimeSeriesDataCorrectedService timeSeriesDataCorrectedService,
 			TimeSeriesDescriptionService timeSeriesDescriptionService) {
 		this.dataGapListBuilderService = dataGapListBuilderService;
 		this.fieldVisitDataService = fieldVisitDataService;
 		this.fieldVisitDescriptionService = fieldVisitDescriptionService;
-		this.locationDescriptionService = locationDescriptionService;
+		this.locationDescriptionListService = locationDescriptionListService;
 		this.nwisRaService = nwisRaService;
 		this.parameterListService = parameterListService;
 		this.qualifierLookupService = qualifierLookupService;
@@ -277,7 +277,7 @@ public class ReportBuilderService {
 		metadata.setQualifierMetadata(
 				qualifierLookupService.getByQualifierList(primarySeriesDataResponse.getQualifiers()));
 
-		LocationDescription locationDescription = locationDescriptionService.getByLocationIdentifier(
+		LocationDescription locationDescription = locationDescriptionListService.getByLocationIdentifier(
 				primarySeriesDescription.getLocationIdentifier());
 		metadata.setStationName(locationDescription.getName());
 		metadata.setStationId(locationDescription.getIdentifier());
