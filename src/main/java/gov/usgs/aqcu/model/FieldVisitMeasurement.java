@@ -22,17 +22,19 @@ public class FieldVisitMeasurement {
 	private BigDecimal errorMinDischarge;
 	private BigDecimal errorMaxDischarge;
 	private String measurementNumber;
+	private Boolean publish;
 
 	public FieldVisitMeasurement(){
 	}
 
 	public FieldVisitMeasurement(String measurementNumber, BigDecimal dischargeValue, BigDecimal errorMaxDischarge,
-			BigDecimal errorMinDischarge, Instant measurementStartDate) {
+			BigDecimal errorMinDischarge, Instant measurementStartDate, Boolean publish) {
 		this.measurementNumber = measurementNumber;
 		this.discharge = dischargeValue;
 		this.errorMinDischarge = errorMinDischarge;
 		this.errorMaxDischarge = errorMaxDischarge;
 		this.measurementStartDate = measurementStartDate;
+		this.publish = publish;
 	}
 
 	public BigDecimal getDischarge() {
@@ -64,6 +66,12 @@ public class FieldVisitMeasurement {
 	}
 	public void setMeasurementNumber(String measurementNumber) {
 		this.measurementNumber = measurementNumber;
+	}
+	public Boolean isPublish() {
+		return publish;
+	}
+	public void setPublish(Boolean publish) {
+		this.publish = publish;
 	}
 
 }
